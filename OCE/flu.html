@@ -1,0 +1,4603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flutter Web Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/eclipse.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #02569B;
+            --secondary: #13B9FD;
+            --accent: #42A5F5;
+            --flutter-blue: #02569B;
+            --flutter-light-blue: #13B9FD;
+            --dark-bg: #1e1e1e;
+            --light-bg: #f8f9fa;
+            --dark-text: #333;
+            --light-text: #f8f9fa;
+            --success: #00C853;
+            --error: #FF5252;
+            --warning: #FFC107;
+            --info: #2196F3;
+            --border-radius: 12px;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--dark-text);
+            transition: var(--transition);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body.dark-mode {
+            background: linear-gradient(135deg, #141E30 0%, #243B55 100%);
+            color: var(--light-text);
+        }
+
+        /* Animations */
+        @keyframes flutter {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0); }
+            33% { transform: translateY(-10px) rotate(5deg); }
+            66% { transform: translateY(5px) rotate(-5deg); }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+
+        @keyframes hotReload {
+            0% { transform: rotate(0deg); box-shadow: 0 0 10px var(--secondary); }
+            100% { transform: rotate(360deg); box-shadow: 0 0 20px var(--secondary); }
+        }
+
+        .flutter-animation {
+            animation: flutter 2s ease-in-out infinite;
+        }
+
+        .pulse-animation {
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .shimmer-effect {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .logo:hover {
+            transform: scale(1.05);
+        }
+
+        .logo i {
+            color: white;
+            font-size: 2rem;
+            animation: flutter 3s ease-in-out infinite;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .logo h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, white, #E3F2FD);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 18px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+            font-weight: 600;
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        .control-btn:active {
+            transform: translateY(0) scale(1);
+        }
+
+        .control-btn i {
+            font-size: 1.1rem;
+        }
+
+        .run-btn {
+            background: linear-gradient(135deg, var(--success), #00E676);
+            border: none;
+        }
+
+        .hot-reload-btn {
+            background: linear-gradient(135deg, var(--secondary), #29B6F6);
+            border: none;
+        }
+
+        .hot-reload-btn.active {
+            animation: hotReload 2s linear infinite;
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, var(--warning), #FFD54F);
+            color: #333;
+            border: none;
+        }
+
+        .debug-btn {
+            background: linear-gradient(135deg, #9C27B0, #CE93D8);
+            border: none;
+        }
+
+        .widget-btn {
+            background: linear-gradient(135deg, #FF9800, #FFB74D);
+            border: none;
+        }
+
+        /* Theme toggle */
+        .theme-toggle {
+            position: relative;
+            width: 60px;
+            height: 30px;
+        }
+
+        .theme-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 34px;
+            transition: var(--transition);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 2px;
+            background: white;
+            border-radius: 50%;
+            transition: var(--transition);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        input:checked + .toggle-slider {
+            background: var(--secondary);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(28px);
+            background: #FFEB3B;
+        }
+
+        /* Main Container */
+        .container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: 1fr auto;
+            gap: 20px;
+            padding: 20px;
+            height: calc(100vh - 70px);
+        }
+
+        /* Editor Section */
+        .editor-section {
+            grid-column: 1;
+            grid-row: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        body.dark-mode .editor-header {
+            background: #2d2d2d;
+        }
+
+        .editor-header h2 {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--primary);
+            font-size: 1.3rem;
+        }
+
+        .editor-header h2 i {
+            color: var(--secondary);
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .editor-options {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .option-btn {
+            background: none;
+            border: 2px solid var(--accent);
+            color: var(--primary);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 500;
+        }
+
+        body.dark-mode .option-btn {
+            border-color: var(--secondary);
+            color: white;
+        }
+
+        .option-btn:hover {
+            background: var(--accent);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .editor-container {
+            flex: 1;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            animation: fadeIn 0.8s ease-in;
+            position: relative;
+        }
+
+        .editor-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            z-index: 10;
+        }
+
+        .CodeMirror {
+            height: 100% !important;
+            font-size: 14px;
+            line-height: 1.6;
+            font-family: 'Fira Code', 'Consolas', monospace;
+        }
+
+        /* Preview Section */
+        .preview-section {
+            grid-column: 2;
+            grid-row: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            animation: slideIn 0.5s ease-out 0.1s both;
+        }
+
+        body.dark-mode .preview-header {
+            background: #2d2d2d;
+        }
+
+        .preview-header h2 {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--primary);
+            font-size: 1.3rem;
+        }
+
+        .preview-header h2 i {
+            color: var(--secondary);
+            animation: pulse 2s infinite;
+        }
+
+        .preview-container {
+            flex: 1;
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            position: relative;
+            animation: fadeIn 0.8s ease-in 0.2s both;
+        }
+
+        body.dark-mode .preview-container {
+            background: #2d2d2d;
+        }
+
+        .device-frame {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            background: #f5f5f5;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 12px solid #333;
+        }
+
+        body.dark-mode .device-frame {
+            background: #1a1a1a;
+            border-color: #666;
+        }
+
+        .device-screen {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background: white;
+        }
+
+        body.dark-mode .device-screen {
+            background: #2d2d2d;
+        }
+
+        /* Examples Panel */
+        .examples-panel {
+            grid-column: 1;
+            grid-row: 2;
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            animation: fadeIn 0.8s ease-in 0.3s both;
+        }
+
+        body.dark-mode .examples-panel {
+            background: #2d2d2d;
+        }
+
+        .examples-panel h3 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.2rem;
+        }
+
+        .examples-panel h3 i {
+            animation: flutter 2s infinite;
+        }
+
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .example-btn {
+            background: linear-gradient(135deg, #f5f7fa, #e4e8f0);
+            border: 2px solid #e0e0e0;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+            animation: fadeIn 0.5s ease-in;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.dark-mode .example-btn {
+            background: linear-gradient(135deg, #3a3a3a, #2d2d2d);
+            border-color: #555;
+            color: #eee;
+        }
+
+        .example-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .example-btn:hover::before {
+            left: 100%;
+        }
+
+        .example-btn:hover {
+            border-color: var(--primary);
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+        }
+
+        .example-btn h4 {
+            color: var(--primary);
+            margin-bottom: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .example-btn p {
+            font-size: 0.85rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        body.dark-mode .example-btn p {
+            color: #aaa;
+        }
+
+        /* Output Section */
+        .output-section {
+            grid-column: 2;
+            grid-row: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        body.dark-mode .output-header {
+            background: #2d2d2d;
+        }
+
+        .output-header h2 {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--primary);
+            font-size: 1.3rem;
+        }
+
+        .output-header h2 i {
+            color: var(--secondary);
+        }
+
+        .output-container {
+            flex: 1;
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: var(--shadow);
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        body.dark-mode .output-container {
+            background: #2d2d2d;
+        }
+
+        .output-line {
+            margin-bottom: 8px;
+            padding-left: 10px;
+            border-left: 3px solid transparent;
+            white-space: pre-wrap;
+            word-break: break-word;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .output-line.info {
+            color: var(--info);
+            border-left-color: var(--info);
+        }
+
+        .output-line.success {
+            color: var(--success);
+            border-left-color: var(--success);
+        }
+
+        .output-line.error {
+            color: var(--error);
+            border-left-color: var(--error);
+        }
+
+        .output-line.warning {
+            color: var(--warning);
+            border-left-color: var(--warning);
+        }
+
+        .output-line.output {
+            color: inherit;
+            border-left-color: #666;
+        }
+
+        /* Widget Tree Visualization */
+        .widget-tree {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 380px;
+            height: 100vh;
+            background: white;
+            box-shadow: -5px 0 20px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        body.dark-mode .widget-tree {
+            background: #2d2d2d;
+            color: white;
+        }
+
+        .widget-tree.active {
+            right: 0;
+        }
+
+        .widget-tree-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .widget-tree-header h2 {
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close-tree {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--error);
+            transition: var(--transition);
+        }
+
+        .close-tree:hover {
+            transform: rotate(90deg);
+        }
+
+        .tree-node {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        body.dark-mode .tree-node {
+            background: #3a3a3a;
+        }
+
+        .tree-node:hover {
+            background: #e0e0e0;
+            transform: translateX(5px);
+        }
+
+        body.dark-mode .tree-node:hover {
+            background: #4a4a4a;
+        }
+
+        .tree-node.widget {
+            border-left: 4px solid var(--primary);
+        }
+
+        .tree-node.stateful {
+            border-left: 4px solid var(--success);
+        }
+
+        .tree-node.stateless {
+            border-left: 4px solid var(--info);
+        }
+
+        .tree-children {
+            margin-left: 20px;
+            padding-left: 10px;
+            border-left: 2px dashed #ccc;
+        }
+
+        /* Hot Reload Indicator */
+        .hot-reload-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--secondary);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(19, 185, 253, 0.3);
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .hot-reload-indicator.active {
+            display: flex;
+        }
+
+        /* Flutter Animation */
+        .flutter-logo {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            animation: flutter 3s ease-in-out infinite;
+            transition: var(--transition);
+        }
+
+        .flutter-logo:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            animation: fadeIn 0.3s ease-in;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideIn 0.5s ease-out;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        body.dark-mode .modal-content {
+            background: #2d2d2d;
+            color: white;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .modal-header h2 {
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--error);
+            transition: var(--transition);
+        }
+
+        .close-modal:hover {
+            transform: rotate(90deg);
+        }
+
+        /* Debug Panel */
+        .debug-panel {
+            background: #f5f7fa;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-top: 15px;
+            border-left: 4px solid var(--info);
+        }
+
+        body.dark-mode .debug-panel {
+            background: #3a3a3a;
+        }
+
+        .debug-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .debug-item {
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        body.dark-mode .debug-item {
+            background: #2d2d2d;
+        }
+
+        /* Flutter Facts */
+        .flutter-facts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .fact-card {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 25px;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .fact-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .fact-card h3 {
+            color: white;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+        }
+
+        /* Performance Metrics */
+        .performance-metrics {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .metric-card {
+            flex: 1;
+            min-width: 150px;
+            background: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        body.dark-mode .metric-card {
+            background: #3a3a3a;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+
+        body.dark-mode .metric-value {
+            color: var(--secondary);
+        }
+
+        /* Status Indicator */
+        .status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status.compiling {
+            background: rgba(2, 86, 155, 0.1);
+            color: var(--primary);
+            animation: pulse 2s infinite;
+        }
+
+        .status.running {
+            background: rgba(0, 200, 83, 0.1);
+            color: var(--success);
+        }
+
+        .status.error {
+            background: rgba(255, 82, 82, 0.1);
+            color: var(--error);
+        }
+
+        .status.idle {
+            background: rgba(33, 150, 243, 0.1);
+            color: var(--info);
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: shimmer 2s infinite;
+        }
+
+        /* Widget Preview */
+        .widget-preview {
+            padding: 20px;
+            height: 100%;
+        }
+
+        .material-widget {
+            margin: 10px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        body.dark-mode .material-widget {
+            background: #3a3a3a;
+        }
+
+        .cupertino-widget {
+            margin: 10px;
+            padding: 20px;
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #e0e0e0;
+        }
+
+        body.dark-mode .cupertino-widget {
+            background: #3a3a3a;
+            border-color: #555;
+        }
+
+        /* Flutter Code Examples */
+        .code-example {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-top: 20px;
+            font-family: 'Fira Code', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            overflow-x: auto;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
+            margin-top: 20px;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: none;
+            transition: var(--transition);
+            font-weight: 600;
+        }
+
+        .footer a:hover {
+            color: var(--secondary);
+            text-decoration: underline;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto auto;
+                height: auto;
+            }
+            
+            .editor-section {
+                grid-column: 1;
+                grid-row: 1;
+            }
+            
+            .preview-section {
+                grid-column: 1;
+                grid-row: 2;
+                min-height: 500px;
+            }
+            
+            .examples-panel {
+                grid-column: 1;
+                grid-row: 3;
+            }
+            
+            .output-section {
+                grid-column: 1;
+                grid-row: 4;
+            }
+            
+            .widget-tree {
+                width: 100%;
+                right: -100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                padding: 1rem;
+            }
+            
+            .controls {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .examples-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .flutter-logo {
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary);
+        }
+
+        /* Loading Animation */
+        .loading-animation {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            gap: 20px;
+        }
+
+        .flutter-loader {
+            width: 60px;
+            height: 60px;
+            position: relative;
+        }
+
+        .flutter-loader::before,
+        .flutter-loader::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 3px solid var(--secondary);
+            border-radius: 50%;
+            animation: flutter 1.5s ease-in-out infinite;
+        }
+
+        .flutter-loader::after {
+            animation-delay: 0.75s;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo" id="logo">
+            <i class="fab fa-flutter"></i>
+            <h1>Flutter Web Editor</h1>
+        </div>
+        <div class="controls">
+            <button class="control-btn run-btn" id="runBtn">
+                <i class="fas fa-play"></i> Run
+            </button>
+            <button class="control-btn hot-reload-btn" id="hotReloadBtn">
+                <i class="fas fa-sync-alt"></i> Hot Reload
+            </button>
+            <button class="control-btn clear-btn" id="clearBtn">
+                <i class="fas fa-broom"></i> Clear
+            </button>
+            <button class="control-btn widget-btn" id="widgetTreeBtn">
+                <i class="fas fa-sitemap"></i> Widget Tree
+            </button>
+            <button class="control-btn debug-btn" id="debugBtn">
+                <i class="fas fa-bug"></i> Debug
+            </button>
+            <button class="control-btn" id="saveBtn">
+                <i class="fas fa-save"></i> Save
+            </button>
+            <div class="theme-toggle">
+                <input type="checkbox" id="themeToggle">
+                <label class="toggle-slider" for="themeToggle"></label>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hot Reload Indicator -->
+    <div class="hot-reload-indicator" id="hotReloadIndicator">
+        <i class="fas fa-sync-alt fa-spin"></i>
+        <span>Hot Reloading...</span>
+    </div>
+
+    <!-- Flutter Animation Logo -->
+    <div class="flutter-logo" id="flutterLogo">
+        <i class="fab fa-flutter"></i>
+    </div>
+
+    <!-- Widget Tree Panel -->
+    <div class="widget-tree" id="widgetTree">
+        <div class="widget-tree-header">
+            <h2><i class="fas fa-sitemap"></i> Widget Tree</h2>
+            <button class="close-tree" id="closeTree">&times;</button>
+        </div>
+        <div id="treeContent"></div>
+    </div>
+
+    <!-- About Flutter Modal -->
+    <div class="modal" id="aboutModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fab fa-flutter"></i> About Flutter</h2>
+                <button class="close-modal" id="closeAboutModal">&times;</button>
+            </div>
+            
+            <div class="flutter-facts">
+                <div class="fact-card">
+                    <h3><i class="fas fa-rocket"></i> What is Flutter?</h3>
+                    <p>Flutter is Google's UI toolkit for building natively compiled applications for mobile, web, and desktop from a single codebase.</p>
+                </div>
+                <div class="fact-card">
+                    <h3><i class="fas fa-paint-brush"></i> Key Features</h3>
+                    <p>• Fast Development with Hot Reload<br>• Expressive UI with Material & Cupertino<br>• Native Performance<br>• Single Codebase</p>
+                </div>
+                <div class="fact-card">
+                    <h3><i class="fas fa-mobile-alt"></i> Platforms</h3>
+                    <p>• iOS<br>• Android<br>• Web<br>• Windows<br>• macOS<br>• Linux</p>
+                </div>
+            </div>
+
+            <div class="code-example">
+                <pre><code>
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flutter Demo',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: MyHomePage(),
+    );
+  }
+}
+
+class MyHomePage extends StatefulWidget {
+  @override
+  _MyHomePageState createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  int _counter = 0;
+
+  void _incrementCounter() {
+    setState(() {
+      _counter++;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Flutter Demo'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Text('You have pushed the button this many times:'),
+            Text(
+              '$_counter',
+              style: Theme.of(context).textTheme.headline4,
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _incrementCounter,
+        tooltip: 'Increment',
+        child: Icon(Icons.add),
+      ),
+    );
+  }
+}
+                </code></pre>
+            </div>
+
+            <div class="debug-panel">
+                <h4><i class="fas fa-chart-line"></i> Flutter Statistics:</h4>
+                <div class="debug-info">
+                    <div class="debug-item">First Release: 2017</div>
+                    <div class="debug-item">Latest Version: 3.x</div>
+                    <div class="debug-item">Language: Dart</div>
+                    <div class="debug-item">GitHub Stars: 150k+</div>
+                </div>
+            </div>
+
+            <button class="control-btn run-btn" style="margin-top: 20px; width: 100%;" id="loadCounterExample">
+                <i class="fas fa-magic"></i> Load Counter Example
+            </button>
+        </div>
+    </div>
+
+    <!-- Debug Modal -->
+    <div class="modal" id="debugModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-bug"></i> Debug Tools</h2>
+                <button class="close-modal" id="closeDebugModal">&times;</button>
+            </div>
+            
+            <div class="debug-panel">
+                <h3><i class="fas fa-tools"></i> Debug Utilities</h3>
+                <div class="debug-info">
+                    <div class="debug-item" id="codeLength">Code Length: 0 chars</div>
+                    <div class="debug-item" id="widgetCount">Widgets: 0</div>
+                    <div class="debug-item" id="statefulCount">Stateful: 0</div>
+                    <div class="debug-item" id="statelessCount">Stateless: 0</div>
+                </div>
+            </div>
+
+            <div class="debug-panel">
+                <h3><i class="fas fa-search"></i> Code Analysis</h3>
+                <button class="control-btn" id="analyzeBtn" style="width: 100%; margin-bottom: 10px;">
+                    <i class="fas fa-search"></i> Analyze Dart Code
+                </button>
+                <div id="analysisResults"></div>
+            </div>
+
+            <div class="debug-panel">
+                <h3><i class="fas fa-tachometer-alt"></i> Performance Metrics</h3>
+                <div class="performance-metrics">
+                    <div class="metric-card">
+                        <i class="fas fa-memory"></i>
+                        <div class="metric-value" id="memoryUsage">--</div>
+                        <div>Memory Usage</div>
+                    </div>
+                    <div class="metric-card">
+                        <i class="fas fa-clock"></i>
+                        <div class="metric-value" id="buildTime">--</div>
+                        <div>Build Time</div>
+                    </div>
+                    <div class="metric-card">
+                        <i class="fas fa-layer-group"></i>
+                        <div class="metric-value" id="widgetDepth">--</div>
+                        <div>Widget Depth</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="debug-panel">
+                <h3><i class="fas fa-vial"></i> Test Runner</h3>
+                <button class="control-btn run-btn" id="testBtn" style="width: 100%; margin-bottom: 10px;">
+                    <i class="fas fa-vial"></i> Run Widget Tests
+                </button>
+                <div class="progress-bar">
+                    <div class="progress" id="testProgress"></div>
+                </div>
+                <div id="testResults"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Editor Section -->
+        <section class="editor-section">
+            <div class="editor-header">
+                <h2><i class="fas fa-code"></i> Dart Code Editor</h2>
+                <div class="editor-options">
+                    <div class="status idle" id="compileStatus">
+                        <i class="fas fa-circle"></i> Ready
+                    </div>
+                    <button class="option-btn" id="fontIncrease"><i class="fas fa-plus"></i></button>
+                    <button class="option-btn" id="fontDecrease"><i class="fas fa-minus"></i></button>
+                    <button class="option-btn" id="formatBtn">Format</button>
+                </div>
+            </div>
+            <div class="editor-container">
+                <textarea id="codeEditor" placeholder="// Write your Flutter/Dart code here..."></textarea>
+            </div>
+        </section>
+
+        <!-- Preview Section -->
+        <section class="preview-section">
+            <div class="preview-header">
+                <h2><i class="fas fa-mobile-alt"></i> App Preview</h2>
+                <div class="status idle" id="previewStatus">
+                    <i class="fas fa-circle"></i> Stopped
+                </div>
+            </div>
+            <div class="preview-container">
+                <div class="device-frame">
+                    <div class="device-screen" id="deviceScreen">
+                        <div class="loading-animation" id="loadingScreen">
+                            <div class="flutter-loader"></div>
+                            <div>Loading Flutter App...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Examples Panel -->
+        <section class="examples-panel">
+            <h3><i class="fas fa-lightbulb"></i> Flutter Examples</h3>
+            <div class="examples-grid">
+                <button class="example-btn" data-example="counter">
+                    <h4>Counter App</h4>
+                    <p>Basic state management</p>
+                </button>
+                <button class="example-btn" data-example="todo">
+                    <h4>Todo List</h4>
+                    <p>CRUD operations with ListView</p>
+                </button>
+                <button class="example-btn" data-example="weather">
+                    <h4>Weather App</h4>
+                    <p>API integration & animations</p>
+                </button>
+                <button class="example-btn" data-example="chat">
+                    <h4>Chat UI</h4>
+                    <p>Messaging interface</p>
+                </button>
+                <button class="example-btn" data-example="calculator">
+                    <h4>Calculator</h4>
+                    <p>Material Design widgets</p>
+                </button>
+                <button class="example-btn" data-example="dashboard">
+                    <h4>Dashboard</h4>
+                    <p>Charts & statistics</p>
+                </button>
+            </div>
+        </section>
+
+        <!-- Output Section -->
+        <section class="output-section">
+            <div class="output-header">
+                <h2><i class="fas fa-terminal"></i> Console Output</h2>
+                <button class="option-btn" id="clearOutputBtn">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            </div>
+            <div class="output-container" id="output">
+                <div class="output-line info">
+                    <i class="fas fa-info-circle"></i> Welcome to Flutter Web Editor!
+                </div>
+                <div class="output-line info">
+                    <i class="fas fa-info-circle"></i> Click "Run" to execute your Flutter app
+                </div>
+                <div class="output-line info">
+                    <i class="fas fa-info-circle"></i> Try "Hot Reload" for instant updates
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>
+            <i class="fab fa-flutter"></i> Flutter Web Editor | 
+            <i class="fas fa-bolt"></i> Hot Reload Simulation | 
+            <i class="fas fa-paint-brush"></i> Widget Tree Visualization
+        </p>
+        <p style="margin-top: 8px; font-size: 0.85rem;">
+            Note: This editor simulates Flutter/Dart execution in the browser. Actual Flutter apps run on the Dart VM.
+        </p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/dart/dart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/comment/comment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/display/autorefresh.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/anyword-hint.min.js"></script>
+    
+    <script>
+        // Initialize CodeMirror Editor for Dart
+        const editor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+            mode: 'dart',
+            theme: 'eclipse',
+            lineNumbers: true,
+            indentUnit: 2,
+            smartIndent: true,
+            matchBrackets: true,
+            autoRefresh: true,
+            extraKeys: {
+                'Ctrl-Space': 'autocomplete',
+                'Ctrl-/': 'toggleComment',
+                'Tab': function(cm) {
+                    cm.replaceSelection('  ', 'end');
+                }
+            },
+            hintOptions: {
+                hint: CodeMirror.hint.anyword,
+                completeSingle: false
+            }
+        });
+
+        // Set initial Dart/Flutter code
+        editor.setValue(`import 'package:flutter/material.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      home: MyHomePage(),
+    );
+  }
+}
+
+class MyHomePage extends StatefulWidget {
+  @override
+  _MyHomePageState createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  int _counter = 0;
+  String _message = 'Welcome to Flutter!';
+
+  void _incrementCounter() {
+    setState(() {
+      _counter++;
+      _message = 'You clicked \$_counter times!';
+    });
+  }
+
+  void _resetCounter() {
+    setState(() {
+      _counter = 0;
+      _message = 'Counter reset!';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Flutter Demo'),
+        centerTitle: true,
+        elevation: 4,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.info),
+            onPressed: () {
+              setState(() {
+                _message = 'Info button pressed!';
+              });
+            },
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: [Colors.blue.shade50, Colors.purple.shade50],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Icon(
+                Icons.flutter_dash,
+                size: 100,
+                color: Colors.blue,
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Flutter Web Editor',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade800,
+                ),
+              ),
+              SizedBox(height: 10),
+              Text(
+                _message,
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.grey.shade700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 30),
+              Card(
+                elevation: 8,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Current Count',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        '\$_counter',
+                        style: TextStyle(
+                          fontSize: 48,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: 30),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _incrementCounter,
+                    icon: Icon(Icons.add),
+                    label: Text('Increment'),
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  OutlinedButton.icon(
+                    onPressed: _resetCounter,
+                    icon: Icon(Icons.refresh),
+                    label: Text('Reset'),
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 40),
+              Text(
+                'Try modifying this code and click "Hot Reload"!',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                  fontStyle: FontStyle.italic,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _incrementCounter,
+        tooltip: 'Increment',
+        icon: Icon(Icons.add),
+        label: Text('Add'),
+        backgroundColor: Colors.blue,
+        elevation: 8,
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+    );
+  }
+}`);
+
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem('flutterEditorTheme');
+        if (savedTheme === 'dark') {
+            body.classList.add('dark-mode');
+            themeToggle.checked = true;
+            editor.setOption('theme', 'dracula');
+        }
+        
+        themeToggle.addEventListener('change', () => {
+            body.classList.toggle('dark-mode');
+            if (body.classList.contains('dark-mode')) {
+                editor.setOption('theme', 'dracula');
+                localStorage.setItem('flutterEditorTheme', 'dark');
+                addOutput('info', '🌙 Switched to dark theme');
+            } else {
+                editor.setOption('theme', 'eclipse');
+                localStorage.setItem('flutterEditorTheme', 'light');
+                addOutput('info', '☀️ Switched to light theme');
+            }
+        });
+
+        // App state
+        let isRunning = false;
+        let isHotReloading = false;
+        let appState = {
+            counter: 0,
+            message: 'Welcome to Flutter!',
+            todos: [],
+            theme: 'light',
+            isLoading: false
+        };
+
+        // Flutter/Dart keywords for autocomplete
+        const flutterKeywords = [
+            'import', 'void', 'main', 'runApp', 'class', 'extends', 'StatefulWidget',
+            'StatelessWidget', 'BuildContext', 'Widget', 'build', 'override', 'return',
+            'MaterialApp', 'Scaffold', 'AppBar', 'Text', 'Center', 'Column', 'Row',
+            'Container', 'Padding', 'SizedBox', 'Icon', 'IconButton', 'ElevatedButton',
+            'TextButton', 'OutlinedButton', 'FloatingActionButton', 'Card', 'ListView',
+            'GridView', 'Stack', 'Positioned', 'Align', 'Expanded', 'Flexible', 'Spacer',
+            'Divider', 'CircularProgressIndicator', 'LinearProgressIndicator', 'SnackBar',
+            'Dialog', 'AlertDialog', 'BottomSheet', 'Drawer', 'BottomNavigationBar',
+            'TabBar', 'TabBarView', 'TextField', 'TextFormField', 'Checkbox', 'Radio',
+            'Switch', 'Slider', 'Stepper', 'DatePicker', 'TimePicker', 'Image',
+            'AssetImage', 'NetworkImage', 'Decoration', 'BoxDecoration', 'Border',
+            'BorderRadius', 'BoxShadow', 'Gradient', 'LinearGradient', 'RadialGradient',
+            'Animation', 'AnimationController', 'Tween', 'CurvedAnimation', 'Hero',
+            'PageRoute', 'Navigator', 'MaterialPageRoute', 'Provider', 'Consumer',
+            'ChangeNotifier', 'ValueNotifier', 'FutureBuilder', 'StreamBuilder',
+            'GestureDetector', 'InkWell', 'Dismissible', 'RefreshIndicator', 'CustomScrollView',
+            'SliverAppBar', 'SliverList', 'SliverGrid', 'MediaQuery', 'Theme', 'ThemeData',
+            'Colors', 'Icons', 'TextStyle', 'FontWeight', 'EdgeInsets', 'Alignment',
+            'MainAxisAlignment', 'CrossAxisAlignment', 'MainAxisSize', 'BoxConstraints',
+            'setState', 'initState', 'dispose', 'didChangeDependencies', 'didUpdateWidget'
+        ];
+
+        // Example code library
+        const examples = {
+            counter: `import 'package:flutter/material.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Counter App',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      home: CounterScreen(),
+    );
+  }
+}
+
+class CounterScreen extends StatefulWidget {
+  @override
+  _CounterScreenState createState() => _CounterScreenState();
+}
+
+class _CounterScreenState extends State<CounterScreen> {
+  int _counter = 0;
+  bool _isDarkMode = false;
+
+  void _incrementCounter() {
+    setState(() {
+      _counter++;
+    });
+  }
+
+  void _decrementCounter() {
+    setState(() {
+      if (_counter > 0) _counter--;
+    });
+  }
+
+  void _resetCounter() {
+    setState(() {
+      _counter = 0;
+    });
+  }
+
+  void _toggleTheme() {
+    setState(() {
+      _isDarkMode = !_isDarkMode;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: _isDarkMode ? Colors.grey.shade900 : Colors.white,
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Counter App',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: _isDarkMode ? Colors.white : Colors.black,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(_isDarkMode ? Icons.light_mode : Icons.dark_mode),
+                    onPressed: _toggleTheme,
+                    color: _isDarkMode ? Colors.yellow : Colors.blue,
+                  ),
+                ],
+              ),
+              SizedBox(height: 40),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.touch_app,
+                      size: 100,
+                      color: Colors.blue,
+                    ),
+                    SizedBox(height: 30),
+                    Text(
+                      'Current Count',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: _isDarkMode ? Colors.grey.shade400 : Colors.grey.shade700,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      '\$_counter',
+                      style: TextStyle(
+                        fontSize: 72,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildButton(
+                          icon: Icons.remove,
+                          label: 'Decrease',
+                          color: Colors.red,
+                          onPressed: _decrementCounter,
+                        ),
+                        SizedBox(width: 20),
+                        _buildButton(
+                          icon: Icons.add,
+                          label: 'Increase',
+                          color: Colors.green,
+                          onPressed: _incrementCounter,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _resetCounter,
+                icon: Icon(Icons.refresh),
+                label: Text('Reset Counter'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Column(
+      children: [
+        CircleAvatar(
+          radius: 30,
+          backgroundColor: color,
+          child: IconButton(
+            icon: Icon(icon, color: Colors.white),
+            onPressed: onPressed,
+            iconSize: 24,
+          ),
+        ),
+        SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: _isDarkMode ? Colors.white : Colors.black,
+          ),
+        ),
+      ],
+    );
+  }
+}`,
+
+            todo: `import 'package:flutter/material.dart';
+
+void main() {
+  runApp(TodoApp());
+}
+
+class TodoApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Todo List',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      home: TodoListScreen(),
+    );
+  }
+}
+
+class TodoItem {
+  String id;
+  String title;
+  String description;
+  bool isCompleted;
+  DateTime createdAt;
+  Color color;
+
+  TodoItem({
+    required this.title,
+    required this.description,
+    this.isCompleted = false,
+    required this.color,
+  }) : id = DateTime.now().millisecondsSinceEpoch.toString(),
+       createdAt = DateTime.now();
+}
+
+class TodoListScreen extends StatefulWidget {
+  @override
+  _TodoListScreenState createState() => _TodoListScreenState();
+}
+
+class _TodoListScreenState extends State<TodoListScreen> {
+  List<TodoItem> _todos = [];
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descController = TextEditingController();
+  Color _selectedColor = Colors.blue;
+
+  final List<Color> _colorOptions = [
+    Colors.blue,
+    Colors.green,
+    Colors.orange,
+    Colors.purple,
+    Colors.red,
+    Colors.teal,
+  ];
+
+  void _addTodo() {
+    if (_titleController.text.isEmpty) return;
+
+    final newTodo = TodoItem(
+      title: _titleController.text,
+      description: _descController.text,
+      color: _selectedColor,
+    );
+
+    setState(() {
+      _todos.insert(0, newTodo);
+    });
+
+    _titleController.clear();
+    _descController.clear();
+
+    // Show success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Todo added successfully!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  }
+
+  void _toggleTodo(int index) {
+    setState(() {
+      _todos[index].isCompleted = !_todos[index].isCompleted;
+    });
+  }
+
+  void _deleteTodo(int index) {
+    setState(() {
+      _todos.removeAt(index);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Todo deleted'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  void _clearAll() {
+    setState(() {
+      _todos.clear();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Todo List'),
+        centerTitle: true,
+        actions: [
+          if (_todos.isNotEmpty)
+            IconButton(
+              icon: Icon(Icons.delete_sweep),
+              onPressed: _clearAll,
+              tooltip: 'Clear All',
+            ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Add Todo Card
+          Card(
+            margin: EdgeInsets.all(16),
+            elevation: 4,
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Text(
+                    'Add New Task',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  TextField(
+                    controller: _titleController,
+                    decoration: InputDecoration(
+                      labelText: 'Task Title',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.title),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  TextField(
+                    controller: _descController,
+                    decoration: InputDecoration(
+                      labelText: 'Description (optional)',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.description),
+                    ),
+                    maxLines: 2,
+                  ),
+                  SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Text('Color: '),
+                      SizedBox(width: 10),
+                      ..._colorOptions.map((color) {
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedColor = color;
+                            });
+                          },
+                          child: Container(
+                            margin: EdgeInsets.only(right: 8),
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: _selectedColor == color 
+                                  ? Colors.black 
+                                  : Colors.transparent,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: _addTodo,
+                    icon: Icon(Icons.add),
+                    label: Text('Add Task'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Todo List
+          Expanded(
+            child: _todos.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 80,
+                          color: Colors.grey.shade400,
+                        ),
+                        SizedBox(height: 20),
+                        Text(
+                          'No tasks yet!',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Add your first task above',
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _todos.length,
+                    itemBuilder: (context, index) {
+                      final todo = _todos[index];
+                      return AnimatedContainer(
+                        duration: Duration(milliseconds: 300),
+                        margin: EdgeInsets.only(bottom: 12),
+                        child: Card(
+                          elevation: 2,
+                          color: todo.isCompleted 
+                              ? Colors.grey.shade100 
+                              : todo.color.withOpacity(0.1),
+                          child: ListTile(
+                            leading: Checkbox(
+                              value: todo.isCompleted,
+                              onChanged: (value) => _toggleTodo(index),
+                              activeColor: todo.color,
+                            ),
+                            title: Text(
+                              todo.title,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                decoration: todo.isCompleted
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                color: todo.isCompleted
+                                    ? Colors.grey
+                                    : Colors.black,
+                              ),
+                            ),
+                            subtitle: todo.description.isNotEmpty
+                                ? Text(
+                                    todo.description,
+                                    style: TextStyle(
+                                      color: todo.isCompleted
+                                          ? Colors.grey
+                                          : Colors.grey.shade700,
+                                    ),
+                                  )
+                                : null,
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  todo.isCompleted
+                                      ? Icons.check_circle
+                                      : Icons.radio_button_unchecked,
+                                  color: todo.color,
+                                ),
+                                SizedBox(width: 8),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.delete,
+                                    color: Colors.red.shade400,
+                                  ),
+                                  onPressed: () => _deleteTodo(index),
+                                ),
+                              ],
+                            ),
+                            onTap: () => _toggleTodo(index),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _addTodo,
+        icon: Icon(Icons.add),
+        label: Text('Add Task'),
+        backgroundColor: Colors.blue,
+      ),
+    );
+  }
+}`,
+
+            weather: `import 'package:flutter/material.dart';
+
+void main() {
+  runApp(WeatherApp());
+}
+
+class WeatherApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Weather Forecast',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      home: WeatherScreen(),
+    );
+  }
+}
+
+class WeatherData {
+  final String city;
+  final double temperature;
+  final String condition;
+  final String icon;
+  final double humidity;
+  final double windSpeed;
+  final int pressure;
+  final Color primaryColor;
+
+  WeatherData({
+    required this.city,
+    required this.temperature,
+    required this.condition,
+    required this.icon,
+    required this.humidity,
+    required this.windSpeed,
+    required this.pressure,
+    required this.primaryColor,
+  });
+}
+
+class Forecast {
+  final String day;
+  final String icon;
+  final double high;
+  final double low;
+
+  Forecast({
+    required this.day,
+    required this.icon,
+    required this.high,
+    required this.low,
+  });
+}
+
+class WeatherScreen extends StatefulWidget {
+  @override
+  _WeatherScreenState createState() => _WeatherScreenState();
+}
+
+class _WeatherScreenState extends State<WeatherScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  
+  int _selectedTab = 0;
+  String _selectedCity = 'New York';
+  bool _isLoading = false;
+
+  final List<String> _cities = [
+    'New York',
+    'London',
+    'Tokyo',
+    'Paris',
+    'Sydney',
+    'Dubai',
+  ];
+
+  final Map<String, WeatherData> _weatherData = {
+    'New York': WeatherData(
+      city: 'New York',
+      temperature: 22.5,
+      condition: 'Partly Cloudy',
+      icon: '⛅',
+      humidity: 65,
+      windSpeed: 12.5,
+      pressure: 1013,
+      primaryColor: Colors.blue,
+    ),
+    'London': WeatherData(
+      city: 'London',
+      temperature: 15.2,
+      condition: 'Rainy',
+      icon: '🌧️',
+      humidity: 85,
+      windSpeed: 8.3,
+      pressure: 1005,
+      primaryColor: Colors.indigo,
+    ),
+    'Tokyo': WeatherData(
+      city: 'Tokyo',
+      temperature: 28.7,
+      condition: 'Sunny',
+      icon: '☀️',
+      humidity: 45,
+      windSpeed: 5.2,
+      pressure: 1015,
+      primaryColor: Colors.orange,
+    ),
+    'Paris': WeatherData(
+      city: 'Paris',
+      temperature: 18.9,
+      condition: 'Cloudy',
+      icon: '☁️',
+      humidity: 70,
+      windSpeed: 10.1,
+      pressure: 1010,
+      primaryColor: Colors.purple,
+    ),
+    'Sydney': WeatherData(
+      city: 'Sydney',
+      temperature: 25.3,
+      condition: 'Clear',
+      icon: '☀️',
+      humidity: 55,
+      windSpeed: 15.8,
+      pressure: 1018,
+      primaryColor: Colors.amber,
+    ),
+    'Dubai': WeatherData(
+      city: 'Dubai',
+      temperature: 35.8,
+      condition: 'Hot',
+      icon: '🔥',
+      humidity: 30,
+      windSpeed: 7.4,
+      pressure: 1008,
+      primaryColor: Colors.red,
+    ),
+  };
+
+  final List<Forecast> _forecast = [
+    Forecast(day: 'Today', icon: '⛅', high: 24, low: 18),
+    Forecast(day: 'Mon', icon: '☀️', high: 26, low: 20),
+    Forecast(day: 'Tue', icon: '☁️', high: 22, low: 17),
+    Forecast(day: 'Wed', icon: '🌧️', high: 19, low: 15),
+    Forecast(day: 'Thu', icon: '⛈️', high: 21, low: 16),
+    Forecast(day: 'Fri', icon: '🌤️', high: 23, low: 17),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _refreshWeather() {
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Simulate API call
+    Future.delayed(Duration(seconds: 2), () {
+      setState(() {
+        _isLoading = false;
+      });
+      addOutput('info', '🌤️ Weather data refreshed for $_selectedCity');
+    });
+  }
+
+  void _selectCity(String city) {
+    setState(() {
+      _selectedCity = city;
+    });
+    _controller.reset();
+    _controller.forward();
+  }
+
+  Widget _buildWeatherCard(WeatherData weather) {
+    return ScaleTransition(
+      scale: _animation,
+      child: Card(
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                weather.primaryColor.withOpacity(0.8),
+                weather.primaryColor.withOpacity(0.4),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          padding: EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        weather.city,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        weather.condition,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    weather.icon,
+                    style: TextStyle(fontSize: 48),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+              Text(
+                '\${weather.temperature.toStringAsFixed(1)}°C',
+                style: TextStyle(
+                  fontSize: 64,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(height: 30),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildDetailItem(Icons.water_drop, 'Humidity', '\${weather.humidity}%'),
+                  _buildDetailItem(Icons.air, 'Wind', '\${weather.windSpeed} km/h'),
+                  _buildDetailItem(Icons.speed, 'Pressure', '\${weather.pressure} hPa'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailItem(IconData icon, String label, String value) {
+    return Column(
+      children: [
+        Icon(icon, color: Colors.white, size: 28),
+        SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.8),
+            fontSize: 12,
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildForecastCard(Forecast forecast) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Container(
+        padding: EdgeInsets.all(16),
+        width: 100,
+        child: Column(
+          children: [
+            Text(
+              forecast.day,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+            SizedBox(height: 8),
+            Text(
+              forecast.icon,
+              style: TextStyle(fontSize: 24),
+            ),
+            SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '\${forecast.high}°',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                SizedBox(width: 4),
+                Text(
+                  '\${forecast.low}°',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final weather = _weatherData[_selectedCity]!;
+
+    return Scaffold(
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 100,
+            floating: true,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              title: Text(
+                'Weather Forecast',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              centerTitle: true,
+            ),
+            actions: [
+              IconButton(
+                icon: Icon(Icons.refresh),
+                onPressed: _isLoading ? null : _refreshWeather,
+              ),
+            ],
+          ),
+          SliverPadding(
+            padding: EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // City selector
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: _cities.map((city) {
+                      return Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(city),
+                          selected: _selectedCity == city,
+                          onSelected: (selected) => _selectCity(city),
+                          selectedColor: weather.primaryColor,
+                          labelStyle: TextStyle(
+                            color: _selectedCity == city ? Colors.white : Colors.black,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                SizedBox(height: 20),
+                
+                // Weather card
+                _buildWeatherCard(weather),
+                SizedBox(height: 30),
+                
+                // Forecast section
+                Text(
+                  '7-Day Forecast',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 16),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: _forecast.map((forecast) {
+                      return Padding(
+                        padding: EdgeInsets.only(right: 12),
+                        child: _buildForecastCard(forecast),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                SizedBox(height: 30),
+                
+                // Additional info
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Weather Insights',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 16),
+                        ListTile(
+                          leading: Icon(Icons.wb_sunny, color: Colors.orange),
+                          title: Text('UV Index: High'),
+                          subtitle: Text('Use sunscreen if going outside'),
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.air, color: Colors.blue),
+                          title: Text('Air Quality: Good'),
+                          subtitle: Text('Perfect for outdoor activities'),
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.access_time, color: Colors.green),
+                          title: Text('Sunrise: 6:30 AM'),
+                          subtitle: Text('Sunset: 7:45 PM'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: _isLoading
+          ? FloatingActionButton(
+              onPressed: null,
+              child: CircularProgressIndicator(color: Colors.white),
+              backgroundColor: weather.primaryColor,
+            )
+          : FloatingActionButton.extended(
+              onPressed: _refreshWeather,
+              icon: Icon(Icons.refresh),
+              label: Text('Refresh'),
+              backgroundColor: weather.primaryColor,
+            ),
+    );
+  }
+}`,
+
+            chat: `import 'package:flutter/material.dart';
+
+void main() {
+  runApp(ChatApp());
+}
+
+class ChatApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Chat App',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      home: ChatScreen(),
+    );
+  }
+}
+
+class Message {
+  final String id;
+  final String text;
+  final DateTime timestamp;
+  final bool isSentByMe;
+  final String senderName;
+  final String? avatar;
+
+  Message({
+    required this.text,
+    required this.isSentByMe,
+    required this.senderName,
+    this.avatar,
+  }) : id = DateTime.now().millisecondsSinceEpoch.toString(),
+       timestamp = DateTime.now();
+}
+
+class ChatScreen extends StatefulWidget {
+  @override
+  _ChatScreenState createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  final List<Message> _messages = [];
+  final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  
+  final List<String> _quickReplies = [
+    'Hello! 👋',
+    'How are you?',
+    'What\'s up?',
+    'Good morning!',
+    'See you later!',
+  ];
+
+  void _sendMessage() {
+    if (_messageController.text.isEmpty) return;
+
+    final message = Message(
+      text: _messageController.text,
+      isSentByMe: true,
+      senderName: 'You',
+      avatar: '👤',
+    );
+
+    setState(() {
+      _messages.add(message);
+    });
+
+    _messageController.clear();
+    _scrollToBottom();
+
+    // Simulate reply after 1 second
+    Future.delayed(Duration(seconds: 1), () {
+      _receiveReply();
+    });
+  }
+
+  void _receiveReply() {
+    final replies = [
+      'Hello! How can I help you today?',
+      'That\'s great to hear!',
+      'I\'m doing well, thank you!',
+      'What are you working on?',
+      'Nice weather today, isn\'t it?',
+    ];
+
+    final message = Message(
+      text: replies[DateTime.now().second % replies.length],
+      isSentByMe: false,
+      senderName: 'Flutter Bot',
+      avatar: '🤖',
+    );
+
+    setState(() {
+      _messages.add(message);
+    });
+    _scrollToBottom();
+  }
+
+  void _sendQuickReply(String text) {
+    _messageController.text = text;
+    _sendMessage();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  void _clearChat() {
+    setState(() {
+      _messages.clear();
+    });
+  }
+
+  Widget _buildMessageBubble(Message message) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: message.isSentByMe 
+            ? MainAxisAlignment.end 
+            : MainAxisAlignment.start,
+        children: [
+          if (!message.isSentByMe)
+            CircleAvatar(
+              radius: 16,
+              child: Text(message.avatar ?? '👤'),
+            ),
+          Flexible(
+            child: Container(
+              margin: EdgeInsets.only(
+                left: message.isSentByMe ? 40 : 8,
+                right: message.isSentByMe ? 8 : 40,
+              ),
+              child: Material(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                  bottomLeft: message.isSentByMe 
+                      ? Radius.circular(16) 
+                      : Radius.circular(4),
+                  bottomRight: message.isSentByMe 
+                      ? Radius.circular(4) 
+                      : Radius.circular(16),
+                ),
+                elevation: 2,
+                color: message.isSentByMe 
+                    ? Colors.blue.shade100 
+                    : Colors.grey.shade100,
+                child: Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (!message.isSentByMe)
+                        Padding(
+                          padding: EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            message.senderName,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: Colors.blue.shade800,
+                            ),
+                          ),
+                        ),
+                      Text(
+                        message.text,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        '${message.timestamp.hour}:${message.timestamp.minute.toString().padLeft(2, '0')}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (message.isSentByMe)
+            CircleAvatar(
+              radius: 16,
+              backgroundColor: Colors.blue,
+              child: Text('👤', style: TextStyle(fontSize: 12)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            CircleAvatar(
+              radius: 16,
+              child: Text('🤖'),
+            ),
+            SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Flutter Chat',
+                  style: TextStyle(fontSize: 16),
+                ),
+                Text(
+                  'Online',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        centerTitle: false,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.videocam),
+            onPressed: () {
+              addOutput('info', '🎥 Starting video call...');
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.call),
+            onPressed: () {
+              addOutput('info', '📞 Starting voice call...');
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.more_vert),
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                builder: (context) {
+                  return Container(
+                    padding: EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          leading: Icon(Icons.delete),
+                          title: Text('Clear Chat'),
+                          onTap: () {
+                            _clearChat();
+                            Navigator.pop(context);
+                          },
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.block),
+                          title: Text('Block User'),
+                          onTap: () {
+                            addOutput('warning', 'User blocked');
+                            Navigator.pop(context);
+                          },
+                        ),
+                        ListTile(
+                          leading: Icon(Icons.report),
+                          title: Text('Report'),
+                          onTap: () {
+                            addOutput('info', 'Report submitted');
+                            Navigator.pop(context);
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Quick replies
+          if (_messages.isEmpty)
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.forum,
+                      size: 80,
+                      color: Colors.grey.shade400,
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      'Start a conversation',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _quickReplies.map((reply) {
+                        return ChoiceChip(
+                          label: Text(reply),
+                          selected: false,
+                          onSelected: (_) => _sendQuickReply(reply),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: EdgeInsets.only(bottom: 8),
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  return _buildMessageBubble(_messages[index]);
+                },
+              ),
+            ),
+          
+          // Input area
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Colors.grey.shade300)),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.add_circle_outline),
+                  onPressed: () {
+                    // Add attachment
+                  },
+                ),
+                Expanded(
+                  child: TextField(
+                    controller: _messageController,
+                    decoration: InputDecoration(
+                      hintText: 'Type a message...',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                    ),
+                    onSubmitted: (_) => _sendMessage(),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.emoji_emotions_outlined),
+                  onPressed: () {
+                    // Show emoji picker
+                  },
+                ),
+                IconButton(
+                  icon: Icon(Icons.send),
+                  onPressed: _sendMessage,
+                  color: Colors.blue,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}`,
+
+            calculator: `import 'package:flutter/material.dart';
+
+void main() {
+  runApp(CalculatorApp());
+}
+
+class CalculatorApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Calculator',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      home: CalculatorScreen(),
+    );
+  }
+}
+
+class CalculatorScreen extends StatefulWidget {
+  @override
+  _CalculatorScreenState createState() => _CalculatorScreenState();
+}
+
+class _CalculatorScreenState extends State<CalculatorScreen> {
+  String _display = '0';
+  String _expression = '';
+  double _firstNumber = 0;
+  double _secondNumber = 0;
+  String _operation = '';
+  bool _isNewOperation = true;
+
+  void _buttonPressed(String buttonText) {
+    setState(() {
+      if (buttonText == 'C') {
+        _display = '0';
+        _expression = '';
+        _firstNumber = 0;
+        _secondNumber = 0;
+        _operation = '';
+        _isNewOperation = true;
+      } else if (buttonText == '⌫') {
+        if (_display.length > 1) {
+          _display = _display.substring(0, _display.length - 1);
+        } else {
+          _display = '0';
+        }
+      } else if (buttonText == '.') {
+        if (!_display.contains('.')) {
+          _display += buttonText;
+        }
+      } else if (buttonText == '=') {
+        if (_operation.isNotEmpty) {
+          _secondNumber = double.parse(_display);
+          _expression += ' $_secondNumber = ';
+          
+          switch (_operation) {
+            case '+':
+              _display = (_firstNumber + _secondNumber).toString();
+              break;
+            case '-':
+              _display = (_firstNumber - _secondNumber).toString();
+              break;
+            case '×':
+              _display = (_firstNumber * _secondNumber).toString();
+              break;
+            case '÷':
+              _display = _secondNumber != 0 
+                  ? (_firstNumber / _secondNumber).toString()
+                  : 'Error';
+              break;
+            case '%':
+              _display = (_firstNumber % _secondNumber).toString();
+              break;
+          }
+          
+          // Remove trailing zeros
+          if (_display.contains('.') && !_display.contains('Error')) {
+            _display = _display.replaceAll(RegExp(r'\.0*$'), '');
+            _display = _display.replaceAll(RegExp(r'(\..*?)0+$'), '\$1');
+          }
+          
+          _operation = '';
+          _isNewOperation = true;
+        }
+      } else if (['+', '-', '×', '÷', '%'].contains(buttonText)) {
+        if (_operation.isEmpty) {
+          _firstNumber = double.parse(_display);
+          _operation = buttonText;
+          _expression = '$_firstNumber $buttonText';
+          _isNewOperation = true;
+        }
+      } else {
+        // Number button
+        if (_display == '0' || _isNewOperation) {
+          _display = buttonText;
+          _isNewOperation = false;
+        } else {
+          _display += buttonText;
+        }
+      }
+    });
+  }
+
+  Widget _buildButton(
+    String text, {
+    Color? backgroundColor,
+    Color textColor = Colors.white,
+    bool isLarge = false,
+  }) {
+    return Expanded(
+      flex: isLarge ? 2 : 1,
+      child: Container(
+        margin: EdgeInsets.all(4),
+        child: ElevatedButton(
+          onPressed: () => _buttonPressed(text),
+          style: ElevatedButton.styleFrom(
+            primary: backgroundColor ?? Colors.grey.shade800,
+            onPrimary: textColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            padding: EdgeInsets.all(20),
+          ),
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Calculator'),
+        centerTitle: true,
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'scientific') {
+                addOutput('info', '🧪 Switching to scientific mode...');
+              } else if (value == 'programmer') {
+                addOutput('info', '💻 Switching to programmer mode...');
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'scientific',
+                child: Row(
+                  children: [
+                    Icon(Icons.science, size: 20),
+                    SizedBox(width: 8),
+                    Text('Scientific'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'programmer',
+                child: Row(
+                  children: [
+                    Icon(Icons.code, size: 20),
+                    SizedBox(width: 8),
+                    Text('Programmer'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Expression display
+          Container(
+            padding: EdgeInsets.all(20),
+            alignment: Alignment.centerRight,
+            child: Text(
+              _expression,
+              style: TextStyle(
+                fontSize: 20,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+          
+          // Main display
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            alignment: Alignment.centerRight,
+            child: Text(
+              _display,
+              style: TextStyle(
+                fontSize: 48,
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          
+          Divider(height: 1),
+          
+          // Calculator buttons
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.all(8),
+              child: Column(
+                children: [
+                  // First row
+                  Row(
+                    children: [
+                      _buildButton('C', backgroundColor: Colors.red.shade400),
+                      _buildButton('⌫', backgroundColor: Colors.orange.shade400),
+                      _buildButton('%', backgroundColor: Colors.grey.shade600),
+                      _buildButton('÷', backgroundColor: Colors.orange),
+                    ],
+                  ),
+                  
+                  // Second row
+                  Row(
+                    children: [
+                      _buildButton('7'),
+                      _buildButton('8'),
+                      _buildButton('9'),
+                      _buildButton('×', backgroundColor: Colors.orange),
+                    ],
+                  ),
+                  
+                  // Third row
+                  Row(
+                    children: [
+                      _buildButton('4'),
+                      _buildButton('5'),
+                      _buildButton('6'),
+                      _buildButton('-', backgroundColor: Colors.orange),
+                    ],
+                  ),
+                  
+                  // Fourth row
+                  Row(
+                    children: [
+                      _buildButton('1'),
+                      _buildButton('2'),
+                      _buildButton('3'),
+                      _buildButton('+', backgroundColor: Colors.orange),
+                    ],
+                  ),
+                  
+                  // Fifth row
+                  Row(
+                    children: [
+                      _buildButton('0', isLarge: true),
+                      _buildButton('.'),
+                      _buildButton('=', backgroundColor: Colors.green),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Memory and history
+          Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: Colors.grey.shade300)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.history),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text('Calculation History'),
+                        content: SingleChildScrollView(
+                          child: Text(_expression),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text('Close'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: Icon(Icons.copy),
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: _display));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Copied to clipboard'),
+                      ),
+                    );
+                  },
+                ),
+                IconButton(
+                  icon: Icon(Icons.share),
+                  onPressed: () {
+                    addOutput('info', '📤 Sharing result: $_display');
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}`,
+
+            dashboard: `import 'package:flutter/material.dart';
+import 'dart:math';
+
+void main() {
+  runApp(DashboardApp());
+}
+
+class DashboardApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Analytics Dashboard',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      home: DashboardScreen(),
+    );
+  }
+}
+
+class Metric {
+  final String title;
+  final double value;
+  final IconData icon;
+  final Color color;
+  final double change;
+
+  Metric({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+    required this.change,
+  });
+}
+
+class ChartData {
+  final String month;
+  final double revenue;
+  final double users;
+  final double growth;
+
+  ChartData({
+    required this.month,
+    required this.revenue,
+    required this.users,
+    required this.growth,
+  });
+}
+
+class DashboardScreen extends StatefulWidget {
+  @override
+  _DashboardScreenState createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  
+  int _selectedTimeFrame = 0; // 0: Week, 1: Month, 2: Year
+  bool _isDarkMode = false;
+
+  final List<Metric> _metrics = [
+    Metric(
+      title: 'Revenue',
+      value: 125430,
+      icon: Icons.attach_money,
+      color: Colors.green,
+      change: 12.5,
+    ),
+    Metric(
+      title: 'Users',
+      value: 25480,
+      icon: Icons.people,
+      color: Colors.blue,
+      change: 8.3,
+    ),
+    Metric(
+      title: 'Sessions',
+      value: 154320,
+      icon: Icons.timeline,
+      color: Colors.orange,
+      change: 15.2,
+    ),
+    Metric(
+      title: 'Conversion',
+      value: 4.2,
+      icon: Icons.trending_up,
+      color: Colors.purple,
+      change: 2.1,
+    ),
+  ];
+
+  final List<ChartData> _chartData = [
+    ChartData(month: 'Jan', revenue: 100, users: 50, growth: 5),
+    ChartData(month: 'Feb', revenue: 120, users: 60, growth: 8),
+    ChartData(month: 'Mar', revenue: 90, users: 45, growth: 3),
+    ChartData(month: 'Apr', revenue: 150, users: 75, growth: 12),
+    ChartData(month: 'May', revenue: 180, users: 90, growth: 15),
+    ChartData(month: 'Jun', revenue: 200, users: 100, growth: 18),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _refreshData() {
+    setState(() {
+      _controller.reset();
+      _controller.forward();
+    });
+    addOutput('info', '📊 Dashboard data refreshed');
+  }
+
+  Widget _buildMetricCard(Metric metric) {
+    return ScaleTransition(
+      scale: _animation,
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Container(
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                metric.color.withOpacity(0.1),
+                metric.color.withOpacity(0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: metric.color.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(metric.icon, color: metric.color),
+                  ),
+                  Text(
+                    '${metric.change > 0 ? '+' : ''}\${metric.change}%',
+                    style: TextStyle(
+                      color: metric.change > 0 ? Colors.green : Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
+              Text(
+                metric.title,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                metric.value >= 1000
+                    ? '\${(metric.value / 1000).toStringAsFixed(1)}K'
+                    : metric.value.toStringAsFixed(metric.title == 'Conversion' ? 1 : 0),
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: _isDarkMode ? Colors.white : Colors.black,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChart() {
+    final maxRevenue = _chartData.map((d) => d.revenue).reduce(max);
+    
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Container(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Revenue Trend',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 20),
+            Container(
+              height: 200,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: _chartData.map((data) {
+                  final height = (data.revenue / maxRevenue) * 150;
+                  return Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Container(
+                            width: 30,
+                            height: height,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: [
+                                  Colors.blue.shade400,
+                                  Colors.blue.shade200,
+                                ],
+                              ),
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(8),
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                data.revenue.toStringAsFixed(0),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            data.month,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildTimeFrameButton('Week', 0),
+                _buildTimeFrameButton('Month', 1),
+                _buildTimeFrameButton('Year', 2),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeFrameButton(String text, int index) {
+    return ChoiceChip(
+      label: Text(text),
+      selected: _selectedTimeFrame == index,
+      onSelected: (selected) {
+        setState(() {
+          _selectedTimeFrame = index;
+        });
+      },
+      selectedColor: Colors.blue,
+      labelStyle: TextStyle(
+        color: _selectedTimeFrame == index ? Colors.white : Colors.black,
+      ),
+    );
+  }
+
+  Widget _buildRecentActivity() {
+    final activities = [
+      {'user': 'John Doe', 'action': 'made a purchase', 'time': '2 min ago'},
+      {'user': 'Jane Smith', 'action': 'signed up', 'time': '15 min ago'},
+      {'user': 'Bob Wilson', 'action': 'upgraded plan', 'time': '1 hour ago'},
+      {'user': 'Alice Johnson', 'action': 'cancelled subscription', 'time': '2 hours ago'},
+      {'user': 'Charlie Brown', 'action': 'left a review', 'time': '3 hours ago'},
+    ];
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Container(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Recent Activity',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.more_vert),
+                  onPressed: () {
+                    // Show more options
+                  },
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            ...activities.map((activity) {
+              return Padding(
+                padding: EdgeInsets.only(bottom: 16),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Colors.blue.shade100,
+                      child: Text(
+                        activity['user']!.substring(0, 1),
+                        style: TextStyle(color: Colors.blue),
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: activity['user'],
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                TextSpan(text: ' '),
+                                TextSpan(text: activity['action']),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            activity['time']!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: activity['action']!.contains('cancelled')
+                            ? Colors.red.shade100
+                            : Colors.green.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        activity['action']!.contains('cancelled') ? 'Negative' : 'Positive',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: activity['action']!.contains('cancelled')
+                              ? Colors.red
+                              : Colors.green,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 100,
+            floating: true,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              title: Text(
+                'Analytics Dashboard',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              centerTitle: true,
+            ),
+            actions: [
+              IconButton(
+                icon: Icon(Icons.refresh),
+                onPressed: _refreshData,
+              ),
+              IconButton(
+                icon: Icon(_isDarkMode ? Icons.light_mode : Icons.dark_mode),
+                onPressed: () {
+                  setState(() {
+                    _isDarkMode = !_isDarkMode;
+                  });
+                },
+              ),
+            ],
+          ),
+          SliverPadding(
+            padding: EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // Metrics grid
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 1.2,
+                  ),
+                  itemCount: _metrics.length,
+                  itemBuilder: (context, index) {
+                    return _buildMetricCard(_metrics[index]);
+                  },
+                ),
+                SizedBox(height: 24),
+                
+                // Chart
+                _buildChart(),
+                SizedBox(height: 24),
+                
+                // Recent activity
+                _buildRecentActivity(),
+                SizedBox(height: 24),
+                
+                // Summary
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Container(
+                    padding: EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Performance Summary',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 16),
+                        LinearProgressIndicator(
+                          value: 0.75,
+                          backgroundColor: Colors.grey.shade200,
+                          valueColor: AlwaysStoppedAnimation(Colors.green),
+                          minHeight: 8,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Overall Performance',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                            Text(
+                              '75%',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 20),
+                        Text(
+                          'Recommendations:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 8),
+                        Text('• Increase marketing budget for Q3'),
+                        Text('• Optimize user onboarding flow'),
+                        Text('• Add referral program features'),
+                      ],
+                    ),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _refreshData,
+        icon: Icon(Icons.analytics),
+        label: Text('Generate Report'),
+        backgroundColor: Colors.blue,
+      ),
+    );
+  }
+}`
+        };
+
+        // Run Button
+        document.getElementById('runBtn').addEventListener('click', async () => {
+            await runFlutterApp();
+        });
+
+        // Hot Reload Button
+        const hotReloadBtn = document.getElementById('hotReloadBtn');
+        const hotReloadIndicator = document.getElementById('hotReloadIndicator');
+        
+        hotReloadBtn.addEventListener('click', async () => {
+            if (isRunning) {
+                await hotReload();
+            } else {
+                addOutput('warning', 'Please run the app first!');
+            }
+        });
+
+        // Widget Tree Button
+        const widgetTree = document.getElementById('widgetTree');
+        const widgetTreeBtn = document.getElementById('widgetTreeBtn');
+        const closeTree = document.getElementById('closeTree');
+        
+        widgetTreeBtn.addEventListener('click', () => {
+            widgetTree.classList.add('active');
+            generateWidgetTree();
+        });
+        
+        closeTree.addEventListener('click', () => {
+            widgetTree.classList.remove('active');
+        });
+
+        // Clear Button
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('clearBtn').classList.add('pulse-animation');
+            setTimeout(() => {
+                document.getElementById('clearBtn').classList.remove('pulse-animation');
+            }, 500);
+            
+            clearOutput();
+            addOutput('info', '🧹 Console cleared successfully!');
+        });
+
+        // Clear output
+        function clearOutput() {
+            const output = document.getElementById('output');
+            output.innerHTML = `
+                <div class="output-line info">
+                    <i class="fas fa-info-circle"></i> Console cleared at ${new Date().toLocaleTimeString()}
+                </div>
+                <div class="output-line info">
+                    <i class="fas fa-info-circle"></i> Ready for Flutter app execution
+                </div>
+            `;
+        }
+
+        // Helper function to add output
+        function addOutput(type, message) {
+            const output = document.getElementById('output');
+            const line = document.createElement('div');
+            line.className = `output-line ${type}`;
+            
+            const iconMap = {
+                'info': 'fas fa-info-circle',
+                'success': 'fas fa-check-circle',
+                'error': 'fas fa-exclamation-circle',
+                'warning': 'fas fa-exclamation-triangle',
+                'output': 'fas fa-angle-right'
+            };
+            
+            line.innerHTML = `<i class="${iconMap[type] || 'fas fa-angle-right'}"></i> ${message}`;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        // Run Flutter App
+        async function runFlutterApp() {
+            if (isRunning) {
+                addOutput('warning', 'App is already running!');
+                return;
+            }
+
+            const code = editor.getValue();
+            const compileStatus = document.getElementById('compileStatus');
+            const previewStatus = document.getElementById('previewStatus');
+            const deviceScreen = document.getElementById('deviceScreen');
+            const loadingScreen = document.getElementById('loadingScreen');
+
+            // Show loading animation
+            loadingScreen.style.display = 'flex';
+            compileStatus.className = 'status compiling';
+            compileStatus.innerHTML = '<i class="fas fa-circle"></i> Compiling...';
+            previewStatus.className = 'status compiling';
+            previewStatus.innerHTML = '<i class="fas fa-circle"></i> Building...';
+
+            isRunning = true;
+            appState.counter = 0;
+            appState.message = 'Welcome to Flutter!';
+
+            // Simulate compilation
+            addOutput('info', '🚀 Starting Flutter app...');
+            addOutput('output', '━'.repeat(60));
+
+            try {
+                // Simulate build process
+                await simulateBuildProcess();
+
+                // Hide loading screen
+                loadingScreen.style.display = 'none';
+
+                // Render the app preview
+                renderAppPreview(code);
+
+                compileStatus.className = 'status success';
+                compileStatus.innerHTML = '<i class="fas fa-circle"></i> Compiled';
+                previewStatus.className = 'status running';
+                previewStatus.innerHTML = '<i class="fas fa-circle"></i> Running';
+
+                addOutput('success', '✅ Flutter app compiled successfully!');
+                addOutput('info', '📱 App is now running in preview');
+                addOutput('info', '🔥 Try "Hot Reload" for instant updates');
+
+                // Generate widget tree
+                generateWidgetTree();
+
+                // Update debug info
+                updateDebugInfo();
+
+            } catch (error) {
+                compileStatus.className = 'status error';
+                compileStatus.innerHTML = '<i class="fas fa-circle"></i> Error';
+                previewStatus.className = 'status error';
+                previewStatus.innerHTML = '<i class="fas fa-circle"></i> Failed';
+                
+                addOutput('error', `❌ Compilation failed: ${error.message}`);
+                isRunning = false;
+            }
+        }
+
+        // Simulate build process
+        async function simulateBuildProcess() {
+            const steps = [
+                'Analyzing Dart code...',
+                'Resolving dependencies...',
+                'Compiling to kernel...',
+                'Generating native code...',
+                'Linking libraries...',
+                'Installing app...',
+                'Launching app...'
+            ];
+
+            for (let i = 0; i < steps.length; i++) {
+                await new Promise(resolve => setTimeout(resolve, 300));
+                addOutput('output', `⚙️ ${steps[i]}`);
+            }
+        }
+
+        // Hot Reload
+        async function hotReload() {
+            if (isHotReloading || !isRunning) return;
+
+            isHotReloading = true;
+            hotReloadBtn.classList.add('active');
+            hotReloadIndicator.classList.add('active');
+
+            addOutput('info', '🔥 Hot reloading...');
+
+            // Simulate hot reload delay
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            const code = editor.getValue();
+            
+            // Re-render the app with updated code
+            renderAppPreview(code);
+            
+            // Update widget tree
+            generateWidgetTree();
+            
+            // Update debug info
+            updateDebugInfo();
+
+            hotReloadBtn.classList.remove('active');
+            hotReloadIndicator.classList.remove('active');
+            isHotReloading = false;
+
+            addOutput('success', '✅ Hot reload completed!');
+            addOutput('info', '🔄 App updated in 0.8 seconds');
+        }
+
+        // Render app preview
+        function renderAppPreview(code) {
+            const deviceScreen = document.getElementById('deviceScreen');
+            
+            // Extract app structure from code
+            const widgetTree = parseFlutterCode(code);
+            
+            // Generate HTML preview
+            deviceScreen.innerHTML = generateFlutterPreview(widgetTree);
+            
+            // Attach event listeners to interactive elements
+            attachFlutterEventListeners();
+        }
+
+        // Parse Flutter code to extract widget tree
+        function parseFlutterCode(code) {
+            // Simple parsing for demo purposes
+            // In a real implementation, you'd use a proper Dart parser
+            
+            const widgetTree = {
+                type: 'MaterialApp',
+                children: [],
+                properties: {}
+            };
+
+            // Extract basic structure
+            if (code.includes('Scaffold')) {
+                widgetTree.children.push({
+                    type: 'Scaffold',
+                    children: [],
+                    properties: {}
+                });
+            }
+
+            if (code.includes('AppBar')) {
+                widgetTree.children[0].children.push({
+                    type: 'AppBar',
+                    children: [],
+                    properties: { title: 'Flutter Demo' }
+                });
+            }
+
+            if (code.includes('Column')) {
+                widgetTree.children[0].children.push({
+                    type: 'Column',
+                    children: [
+                        { type: 'Text', properties: { text: 'Welcome to Flutter!' } },
+                        { type: 'Text', properties: { text: `Counter: ${appState.counter}` } }
+                    ],
+                    properties: {}
+                });
+            }
+
+            if (code.includes('FloatingActionButton')) {
+                widgetTree.children[0].children.push({
+                    type: 'FloatingActionButton',
+                    children: [],
+                    properties: { onPressed: 'incrementCounter' }
+                });
+            }
+
+            return widgetTree;
+        }
+
+        // Generate Flutter preview HTML
+        function generateFlutterPreview(widgetTree) {
+            let html = '<div class="widget-preview">';
+            
+            // Generate MaterialApp wrapper
+            html += '<div class="material-widget">';
+            
+            // Generate Scaffold
+            html += '<div class="scaffold-container">';
+            
+            // Generate AppBar
+            if (widgetTree.children[0]?.children[0]?.type === 'AppBar') {
+                const appBar = widgetTree.children[0].children[0];
+                html += `
+                    <div class="app-bar">
+                        <div class="app-bar-content">
+                            <i class="fas fa-flutter"></i>
+                            <span>${appBar.properties.title || 'Flutter App'}</span>
+                        </div>
+                        <div class="app-bar-actions">
+                            <button class="icon-btn"><i class="fas fa-info-circle"></i></button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Generate body content
+            html += '<div class="app-body">';
+            
+            // Counter app preview
+            html += `
+                <div class="counter-preview">
+                    <div class="flutter-logo-preview">
+                        <i class="fab fa-flutter"></i>
+                    </div>
+                    <h2>Flutter Web Editor</h2>
+                    <p class="message">${appState.message}</p>
+                    
+                    <div class="counter-card">
+                        <p class="counter-label">Current Count</p>
+                        <p class="counter-value">${appState.counter}</p>
+                    </div>
+                    
+                    <div class="button-row">
+                        <button class="flutter-btn primary" id="incrementBtn">
+                            <i class="fas fa-plus"></i>
+                            <span>Increment</span>
+                        </button>
+                        <button class="flutter-btn secondary" id="resetBtn">
+                            <i class="fas fa-redo"></i>
+                            <span>Reset</span>
+                        </button>
+                    </div>
+                    
+                    <p class="hint">Try modifying the code and click "Hot Reload"!</p>
+                </div>
+            `;
+            
+            html += '</div>'; // Close app-body
+            
+            // Generate FloatingActionButton
+            html += `
+                <div class="fab-container">
+                    <button class="fab" id="fabBtn">
+                        <i class="fas fa-add"></i>
+                    </button>
+                </div>
+            `;
+            
+            html += '</div>'; // Close scaffold-container
+            html += '</div>'; // Close material-widget
+            html += '</div>'; // Close widget-preview
+            
+            return html;
+        }
+
+        // Attach event listeners to Flutter preview
+        function attachFlutterEventListeners() {
+            // Increment button
+            const incrementBtn = document.getElementById('incrementBtn');
+            if (incrementBtn) {
+                incrementBtn.addEventListener('click', () => {
+                    appState.counter++;
+                    appState.message = `You clicked ${appState.counter} times!`;
+                    addOutput('output', `➕ Counter incremented to ${appState.counter}`);
+                    renderAppPreview(editor.getValue());
+                });
+            }
+
+            // Reset button
+            const resetBtn = document.getElementById('resetBtn');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', () => {
+                    appState.counter = 0;
+                    appState.message = 'Counter reset!';
+                    addOutput('output', '🔄 Counter reset to 0');
+                    renderAppPreview(editor.getValue());
+                });
+            }
+
+            // FAB button
+            const fabBtn = document.getElementById('fabBtn');
+            if (fabBtn) {
+                fabBtn.addEventListener('click', () => {
+                    appState.counter++;
+                    appState.message = `FAB pressed! Counter: ${appState.counter}`;
+                    addOutput('output', `🎯 Floating Action Button pressed`);
+                    renderAppPreview(editor.getValue());
+                });
+            }
+        }
+
+        // Generate widget tree visualization
+        function generateWidgetTree() {
+            const treeContent = document.getElementById('treeContent');
+            const code = editor.getValue();
+            
+            // Parse widgets from code
+            const widgets = extractWidgetsFromCode(code);
+            
+            let html = '<div class="tree-node widget">MaterialApp</div>';
+            html += '<div class="tree-children">';
+            
+            // Scaffold
+            html += '<div class="tree-node stateless">Scaffold</div>';
+            html += '<div class="tree-children">';
+            
+            // AppBar
+            if (code.includes('AppBar')) {
+                html += '<div class="tree-node widget">AppBar</div>';
+            }
+            
+            // Body
+            html += '<div class="tree-node widget">Body</div>';
+            html += '<div class="tree-children">';
+            
+            // Detect widget types
+            if (code.includes('Column')) {
+                html += '<div class="tree-node widget">Column</div>';
+                html += '<div class="tree-children">';
+                html += '<div class="tree-node stateless">Text ("Welcome to Flutter")</div>';
+                html += '<div class="tree-node stateful">Text (Counter)</div>';
+                html += '<div class="tree-node widget">ButtonRow</div>';
+                html += '</div>';
+            }
+            
+            if (code.includes('ListView')) {
+                html += '<div class="tree-node widget">ListView</div>';
+            }
+            
+            if (code.includes('GridView')) {
+                html += '<div class="tree-node widget">GridView</div>';
+            }
+            
+            html += '</div>'; // Close Body children
+            
+            // FAB
+            if (code.includes('FloatingActionButton')) {
+                html += '<div class="tree-node stateful">FloatingActionButton</div>';
+            }
+            
+            html += '</div>'; // Close Scaffold children
+            html += '</div>'; // Close MaterialApp children
+            
+            treeContent.innerHTML = html;
+        }
+
+        // Extract widgets from code
+        function extractWidgetsFromCode(code) {
+            const widgetPattern = /(?:class|Widget|StatelessWidget|StatefulWidget)\s+(\w+)/g;
+            const matches = [...code.matchAll(widgetPattern)];
+            return matches.map(match => match[1]).filter(widget => 
+                !['main', 'runApp', 'setState', 'BuildContext'].includes(widget)
+            );
+        }
+
+        // Font size controls
+        let fontSize = 14;
+        document.getElementById('fontIncrease').addEventListener('click', () => {
+            fontSize = Math.min(fontSize + 1, 24);
+            editor.getWrapperElement().style.fontSize = `${fontSize}px`;
+            editor.refresh();
+            addOutput('info', `📝 Font size increased to ${fontSize}px`);
+        });
+        
+        document.getElementById('fontDecrease').addEventListener('click', () => {
+            fontSize = Math.max(fontSize - 1, 10);
+            editor.getWrapperElement().style.fontSize = `${fontSize}px`;
+            editor.refresh();
+            addOutput('info', `📝 Font size decreased to ${fontSize}px`);
+        });
+
+        // Format button
+        document.getElementById('formatBtn').addEventListener('click', () => {
+            const code = editor.getValue();
+            
+            // Basic Dart formatting
+            const lines = code.split('\n');
+            let indent = 0;
+            let formatted = [];
+            
+            for (let line of lines) {
+                const trimmed = line.trim();
+                
+                if (trimmed.startsWith('}') || trimmed.startsWith('});')) {
+                    indent = Math.max(0, indent - 1);
+                }
+                
+                formatted.push(' '.repeat(indent * 2) + trimmed);
+                
+                if (trimmed.endsWith('{') || trimmed.includes('=>') ||
+                    trimmed.startsWith('class ') || trimmed.startsWith('Widget ') ||
+                    trimmed.startsWith('@override')) {
+                    indent++;
+                }
+            }
+            
+            editor.setValue(formatted.join('\n'));
+            addOutput('success', '✨ Dart code formatted successfully!');
+        });
+
+        // Save button
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            const code = editor.getValue();
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'flutter_app.dart';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            addOutput('success', '💾 Code saved as flutter_app.dart');
+        });
+
+        // Load example code
+        document.querySelectorAll('.example-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const example = btn.dataset.example;
+                if (examples[example]) {
+                    // Add click animation
+                    btn.classList.add('pulse-animation');
+                    setTimeout(() => {
+                        btn.classList.remove('pulse-animation');
+                    }, 500);
+                    
+                    editor.setValue(examples[example]);
+                    addOutput('success', `✨ Loaded ${btn.querySelector('h4').textContent} example`);
+                    editor.focus();
+                    updateDebugInfo();
+                }
+            });
+        });
+
+        // Flutter logo animation
+        document.getElementById('flutterLogo').addEventListener('click', () => {
+            addOutput('info', '🚀 Welcome to Flutter Web Editor!');
+            document.getElementById('flutterLogo').classList.add('flutter-animation');
+            setTimeout(() => {
+                document.getElementById('flutterLogo').classList.remove('flutter-animation');
+            }, 2000);
+        });
+
+        // Update debug information
+        function updateDebugInfo() {
+            const code = editor.getValue();
+            const lines = code.split('\n').filter(line => line.trim() !== '');
+            const widgets = extractWidgetsFromCode(code);
+            const statefulWidgets = (code.match(/StatefulWidget/g) || []).length;
+            const statelessWidgets = (code.match(/StatelessWidget/g) || []).length;
+            
+            document.getElementById('codeLength').textContent = `Code Length: ${code.length} chars`;
+            document.getElementById('widgetCount').textContent = `Widgets: ${widgets.length}`;
+            document.getElementById('statefulCount').textContent = `Stateful: ${statefulWidgets}`;
+            document.getElementById('statelessCount').textContent = `Stateless: ${statelessWidgets}`;
+            
+            // Update performance metrics
+            document.getElementById('memoryUsage').textContent = `${Math.floor(Math.random() * 100) + 50} MB`;
+            document.getElementById('buildTime').textContent = `${Math.floor(Math.random() * 500) + 100}ms`;
+            document.getElementById('widgetDepth').textContent = `${Math.floor(Math.random() * 10) + 5}`;
+        }
+
+        // Clear output button in output section
+        document.getElementById('clearOutputBtn').addEventListener('click', () => {
+            clearOutput();
+        });
+
+        // Auto-update debug info every 5 seconds
+        setInterval(updateDebugInfo, 5000);
+        
+        // Initialize debug info
+        updateDebugInfo();
+
+        // Handle Ctrl+S to save
+        editor.on('keydown', (cm, event) => {
+            if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+                event.preventDefault();
+                document.getElementById('saveBtn').click();
+            }
+            if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                event.preventDefault();
+                document.getElementById('runBtn').click();
+            }
+            if ((event.ctrlKey || event.metaKey) && event.key === 'r') {
+                event.preventDefault();
+                document.getElementById('hotReloadBtn').click();
+            }
+        });
+
+        // Auto-focus editor
+        editor.focus();
+
+        // Add welcome message
+        setTimeout(() => {
+            addOutput('info', '🎯 Try running the Counter example or loading other demos!');
+        }, 1000);
+    </script>
+</body>
+</html>

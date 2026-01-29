@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced XML Editor with Examples</title>
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: rgb(28, 28, 29);
+            color: #fff;
+            min-height: 100vh;
+            padding: 0;
+        }
+        
+        /* Navbar with animations */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1em 2em;
+            background-color: #282c34;
+            color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            animation: slideDown 0.8s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .logo h1 {
+            font-size: 1.5em;
+            color: #61dafb;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo h1 i {
+            font-size: 1.8rem;
+        }
+        
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        #backBtn {
+            background-color: #61dafb;
+            color: #282c34;
+            border: none;
+            padding: 0.6em 1.5em;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        #backBtn:hover {
+            background-color: #4fa8c7;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(97, 218, 251, 0.3);
+        }
+        
+        /* Main container with animation */
+        .main-container {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 2em;
+            gap: 30px;
+            animation: fadeIn 1s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Editor section - 2/3 width */
+        .editor-section {
+            flex: 2;
+            min-width: 300px;
+            animation: slideInLeft 0.8s ease-out;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                transform: translateX(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Examples section - 1/3 width */
+        .examples-section {
+            flex: 1;
+            min-width: 300px;
+            animation: slideInRight 0.8s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        h1, h2 {
+            margin-bottom: 20px;
+            color: #61dafb;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        h2 {
+            border-bottom: 2px solid #61dafb;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* Editor container */
+        .editor-container {
+            width: 100%;
+            margin: 0 auto 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 500px;
+        }
+        
+        .editor-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* Button container with animation */
+        .button-container {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        button {
+            background-color: #61dafb;
+            color: #282c34;
+            border: none;
+            padding: 0.7em 1.5em;
+            cursor: pointer;
+            margin: 0 5px;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:hover {
+            background-color: #4fa8c7;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(97, 218, 251, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(-1px);
+        }
+        
+        /* Examples grid - 4 cards per row */
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        @media (min-width: 1200px) {
+            .examples-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 1100px) {
+            .examples-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .examples-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Example card with animations */
+        .example-card {
+            background-color: #2c2c2c;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid #3a3a3a;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            /* Initial state for animation */
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        /* In-view animation for cards */
+        .example-card.in-view {
+            animation: cardEntrance 0.6s forwards;
+        }
+
+        @keyframes cardEntrance {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        /* Stagger animation delay for each card */
+        .example-card:nth-child(2n+1).in-view { animation-delay: 0.1s; }
+        .example-card:nth-child(2n+2).in-view { animation-delay: 0.2s; }
+        
+        /* Glow effect on hover */
+        .example-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #61dafb, #4fa8c7, #61dafb);
+            transform: translateX(-100%);
+            transition: transform 0.5s ease;
+        }
+        
+        .example-card:hover::before {
+            transform: translateX(0);
+        }
+        
+        .example-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.2);
+            border-color: #61dafb;
+        }
+        
+        .example-card h3 {
+            color: #61dafb;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1em;
+        }
+        
+        .example-card p {
+            color: #ccc;
+            font-size: 0.9em;
+            line-height: 1.5;
+            flex-grow: 1;
+        }
+        
+        .example-card .code-preview {
+            background-color: #1e1e1e;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            color: #4fc3f7;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            border-left: 3px solid #61dafb;
+        }
+        
+        /* Result panel */
+        .result-panel {
+            background-color: #1e1e1e;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            border-left: 4px solid #61dafb;
+            transition: all 0.3s ease;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .result-panel:hover {
+            border-left-color: #4fa8c7;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .result-title {
+            color: #61dafb;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .result-content {
+            font-family: 'Courier New', monospace;
+            color: #e0e0e0;
+            line-height: 1.5;
+        }
+        
+        .result-success {
+            color: #4CAF50;
+        }
+        
+        .result-error {
+            color: #ff6b6b;
+        }
+        
+        .result-info {
+            color: #61dafb;
+        }
+        
+        /* Footer with animation */
+        .footer {
+            text-align: center;
+            padding: 2em;
+            background-color: #282c34;
+            color: white;
+            margin-top: 2em;
+            animation: fadeIn 1.5s ease-out;
+        }
+        
+        /* Scroll indicator */
+        .scroll-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background-color: #61dafb;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            z-index: 100;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        .scroll-indicator.visible {
+            opacity: 1;
+        }
+        
+        .scroll-indicator:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 15px rgba(97, 218, 251, 0.4);
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 1100px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .editor-section, .examples-section {
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 1em;
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .nav-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .main-container {
+                padding: 1em;
+            }
+            
+            .button-container {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+                justify-content: center;
+                margin-bottom: 10px;
+            }
+            
+            .editor-container {
+                height: 400px;
+            }
+        }
+        
+        /* Loading animation */
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        .loading {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <!-- Scroll to top button -->
+    <div class="scroll-indicator" id="scrollToTop">
+        <i class="fas fa-arrow-up"></i>
+    </div>
+
+    <!-- Navigation bar -->
+    <nav class="navbar">
+        <div class="logo">
+            <h1><i class="fas fa-code"></i> XML Editor</h1>
+        </div>
+        <div class="nav-right">
+            <button id="backBtn"><i class="fas fa-arrow-left"></i> Back to Languages</button>
+        </div>
+    </nav>
+
+    <!-- Main container with editor and examples -->
+    <div class="main-container">
+        <!-- Editor Section -->
+        <div class="editor-section">
+            <h2><i class="fas fa-edit"></i> XML Editor</h2>
+            
+            <div class="editor-container">
+                <textarea id="xml-editor">
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- XML Example Document -->
+<bookstore>
+  <book category="fiction">
+    <title lang="en">Harry Potter</title>
+    <author>J.K. Rowling</author>
+    <year>2005</year>
+    <price>29.99</price>
+  </book>
+  <book category="programming">
+    <title lang="en">Learning XML</title>
+    <author>John Doe</author>
+    <year>2012</year>
+    <price>39.95</price>
+  </book>
+  <book category="web">
+    <title lang="en">XML in Action</title>
+    <author>Jane Smith</author>
+    <year>2018</year>
+    <price>49.99</price>
+  </book>
+</bookstore>
+                </textarea>
+            </div>
+            
+            <div class="button-container">
+                <button onclick="formatXML()"><i class="fas fa-align-left"></i> Format XML</button>
+                <button onclick="validateXML()"><i class="fas fa-check-circle"></i> Validate XML</button>
+                <button onclick="minifyXML()"><i class="fas fa-compress-alt"></i> Minify XML</button>
+                <button onclick="saveXML()"><i class="fas fa-save"></i> Save XML</button>
+                <button onclick="loadXML()"><i class="fas fa-folder-open"></i> Load XML</button>
+                <button onclick="clearEditor()"><i class="fas fa-trash-alt"></i> Clear Editor</button>
+            </div>
+            
+            <h2><i class="fas fa-clipboard-check"></i> XML Result</h2>
+            <div class="result-panel" id="result-output">
+                <div class="result-title">
+                    <i class="fas fa-info-circle"></i> XML Result Panel
+                </div>
+                <div class="result-content result-info">
+                    Ready to work with XML. Format or validate your XML code to see results here.
+                </div>
+            </div>
+        </div>
+        
+        <!-- Examples Section -->
+        <div class="examples-section">
+            <h2><i class="fas fa-lightbulb"></i> XML Examples</h2>
+            <p>Click on any example to load it into the editor:</p>
+            
+            <div class="examples-grid">
+                <!-- Example Cards - Each will be 1/2 of the width (2 per row) -->
+                <div class="example-card" data-example="books">
+                    <h3><i class="fas fa-book"></i> Book Catalog</h3>
+                    <p>A simple XML structure for a bookstore catalog with books and details</p>
+                    <div class="code-preview">&lt;bookstore&gt;&lt;book category="fiction"&gt;...&lt;/book&gt;&lt;/bookstore&gt;</div>
+                </div>
+                
+                <div class="example-card" data-example="contacts">
+                    <h3><i class="fas fa-address-book"></i> Contact List</h3>
+                    <p>XML structure for storing contact information with addresses</p>
+                    <div class="code-preview">&lt;contacts&gt;&lt;contact&gt;&lt;name&gt;John&lt;/name&gt;...&lt;/contact&gt;&lt;/contacts&gt;</div>
+                </div>
+                
+                <div class="example-card" data-example="config">
+                    <h3><i class="fas fa-cog"></i> Configuration File</h3>
+                    <p>XML configuration file example with settings and parameters</p>
+                    <div class="code-preview">&lt;config&gt;&lt;database host="localhost"&gt;...&lt;/database&gt;&lt;/config&gt;</div>
+                </div>
+                
+                <div class="example-card" data-example="rss">
+                    <h3><i class="fas fa-rss"></i> RSS Feed</h3>
+                    <p>Sample RSS feed structure with channel, items, and metadata</p>
+                    <div class="code-preview">&lt;rss version="2.0"&gt;&lt;channel&gt;&lt;title&gt;...&lt;/title&gt;&lt;/channel&gt;&lt;/rss&gt;</div>
+                </div>
+                
+                <div class="example-card" data-example="menu">
+                    <h3><i class="fas fa-bars"></i> Navigation Menu</h3>
+                    <p>XML structure for a website navigation menu with submenus</p>
+                    <div class="code-preview">&lt;menu&gt;&lt;item name="Home"&gt;...&lt;/item&gt;&lt;/menu&gt;</div>
+                </div>
+                
+                <div class="example-card" data-example="products">
+                    <h3><i class="fas fa-shopping-cart"></i> Product Catalog</h3>
+                    <p>E-commerce product catalog with categories and product details</p>
+                    <div class="code-preview">&lt;products&gt;&lt;product id="1"&gt;&lt;name&gt;...&lt;/name&gt;&lt;/product&gt;&lt;/products&gt;</div>
+                </div>
+                
+                <div class="example-card" data-example="students">
+                    <h3><i class="fas fa-graduation-cap"></i> Student Records</h3>
+                    <p>XML structure for student records with grades and courses</p>
+                    <div class="code-preview">&lt;students&gt;&lt;student roll="101"&gt;...&lt;/student&gt;&lt;/students&gt;</div>
+                </div>
+                
+                <div class="example-card" data-example="inventory">
+                    <h3><i class="fas fa-boxes"></i> Inventory System</h3>
+                    <p>Warehouse inventory management XML with stock levels</p>
+                    <div class="code-preview">&lt;inventory&gt;&lt;item sku="A123"&gt;&lt;quantity&gt;50&lt;/quantity&gt;&lt;/item&gt;&lt;/inventory&gt;</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>Enhanced XML Editor &copy; 2023 | Format, Validate, and Work with XML</p>
+        <p style="margin-top: 10px; font-size: 0.9rem;">
+            <i class="fas fa-code-branch"></i> Try the examples or create your own XML documents!
+        </p>
+    </footer>
+
+    <!-- CodeMirror JavaScript Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closetag.min.js"></script>
+
+    <!-- vkBeautify Library for XML Formatting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vkbeautify/0.99.00/vkbeautify.min.js"></script>
+
+    <script>
+        // Initialize the CodeMirror editor
+        const editor = CodeMirror.fromTextArea(document.getElementById('xml-editor'), {
+            mode: 'application/xml',         // XML syntax highlighting
+            theme: 'monokai',                // Set the theme
+            lineNumbers: true,               // Show line numbers
+            lineWrapping: true,              // Wrap lines that are too long
+            autoCloseTags: true,             // Automatically close XML tags
+            matchTags: {bothTags: true},     // Highlight matching tags
+            extraKeys: {
+                "Ctrl-Space": "autocomplete",
+                "Ctrl-F": formatXML,
+                "Ctrl-V": validateXML
+            }
+        });
+        
+        // Set editor size
+        editor.setSize("100%", "100%");
+
+        // Function to format XML code
+        function formatXML() {
+            const unformattedCode = editor.getValue();
+            try {
+                // Show loading state
+                showResult("Formatting XML...", "info");
+                
+                // Add small delay for animation effect
+                setTimeout(() => {
+                    const formattedCode = vkbeautify.xml(unformattedCode, 2);
+                    editor.setValue(formattedCode);
+                    showResult("XML formatted successfully! The document is now properly indented.", "success");
+                }, 300);
+            } catch (error) {
+                showResult("Error formatting XML: " + error.message, "error");
+            }
+        }
+
+        // Function to validate XML code
+        function validateXML() {
+            const xmlCode = editor.getValue();
+            
+            // Show loading state
+            showResult("Validating XML structure...", "info");
+            
+            // Add small delay for animation effect
+            setTimeout(() => {
+                try {
+                    // Create a DOM parser
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(xmlCode, "application/xml");
+                    
+                    // Check for parsing errors
+                    const parserError = xmlDoc.getElementsByTagName("parsererror");
+                    if (parserError.length > 0) {
+                        const errorText = parserError[0].textContent || "Unknown parsing error";
+                        showResult("XML Validation Failed: " + errorText, "error");
+                        return;
+                    }
+                    
+                    // Check if document has a root element
+                    if (!xmlDoc.documentElement || xmlDoc.documentElement.nodeName === "parsererror") {
+                        showResult("Invalid XML: No root element found", "error");
+                        return;
+                    }
+                    
+                    // Count elements for statistics
+                    const elementCount = xmlDoc.getElementsByTagName("*").length;
+                    const rootElement = xmlDoc.documentElement.nodeName;
+                    
+                    showResult(`XML is valid! ✓\nRoot element: &lt;${rootElement}&gt;\nTotal elements: ${elementCount}`, "success");
+                    
+                } catch (error) {
+                    showResult("XML Validation Error: " + error.message, "error");
+                }
+            }, 300);
+        }
+
+        // Function to minify XML
+        function minifyXML() {
+            const formattedCode = editor.getValue();
+            try {
+                // Remove comments, extra whitespace, and line breaks
+                let minifiedCode = formattedCode
+                    .replace(/<!--[\s\S]*?-->/g, '') // Remove comments
+                    .replace(/>\s+</g, '><') // Remove whitespace between tags
+                    .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+                    .trim();
+                
+                editor.setValue(minifiedCode);
+                showResult("XML minified successfully! Comments removed and whitespace reduced.", "success");
+            } catch (error) {
+                showResult("Error minifying XML: " + error.message, "error");
+            }
+        }
+
+        // Function to save XML to localStorage
+        function saveXML() {
+            const xmlCode = editor.getValue();
+            localStorage.setItem('xmlEditorCode', xmlCode);
+            showResult("XML saved to browser storage successfully!", "success");
+        }
+
+        // Function to load XML from localStorage
+        function loadXML() {
+            const savedCode = localStorage.getItem('xmlEditorCode');
+            if (savedCode) {
+                editor.setValue(savedCode);
+                showResult("XML loaded from browser storage!", "success");
+            } else {
+                showResult("No saved XML found in storage.", "info");
+            }
+        }
+
+        // Function to clear the editor
+        function clearEditor() {
+            editor.setValue('<?xml version="1.0" encoding="UTF-8"?>\n<!-- Your XML document here -->\n<root>\n  \n</root>');
+            showResult("Editor cleared. Ready for new XML document.", "info");
+        }
+
+        // Function to display results
+        function showResult(message, type) {
+            const resultPanel = document.getElementById('result-output');
+            const typeClass = `result-${type}`;
+            
+            resultPanel.innerHTML = `
+                <div class="result-title">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                    XML ${type.charAt(0).toUpperCase() + type.slice(1)}
+                </div>
+                <div class="result-content ${typeClass}">
+                    ${message}
+                </div>
+            `;
+            
+            // Scroll to result panel
+            resultPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Back button functionality
+        document.getElementById('backBtn').addEventListener('click', () => {
+            // In a real application, this would navigate back to the language selection
+            alert('This would navigate back to the language selection page in a real application.');
+            // window.location.href = 'index.html'; // Uncomment in a real app
+        });
+
+        // Example cards functionality
+        const exampleCards = document.querySelectorAll('.example-card');
+        const examples = {
+            books: `<?xml version="1.0" encoding="UTF-8"?>
+<bookstore>
+  <book category="fiction">
+    <title lang="en">Harry Potter and the Philosopher's Stone</title>
+    <author>J.K. Rowling</author>
+    <year>1997</year>
+    <price>24.99</price>
+    <description>The first book in the Harry Potter series</description>
+  </book>
+  <book category="programming">
+    <title lang="en">Clean Code: A Handbook of Agile Software Craftsmanship</title>
+    <author>Robert C. Martin</author>
+    <year>2008</year>
+    <price>37.95</price>
+    <description>Even bad code can function. But if code isn't clean, it can bring a development organization to its knees.</description>
+  </book>
+  <book category="web">
+    <title lang="en">Learning Web Design: A Beginner's Guide</title>
+    <author>Jennifer Niederst Robbins</author>
+    <year>2018</year>
+    <price>49.99</price>
+    <description>A beginner's guide to HTML, CSS, JavaScript, and web graphics</description>
+  </book>
+</bookstore>`,
+            
+            contacts: `<?xml version="1.0" encoding="UTF-8"?>
+<contacts>
+  <contact id="1">
+    <name>John Smith</name>
+    <email>john.smith@example.com</email>
+    <phone type="mobile">+1 (555) 123-4567</phone>
+    <phone type="work">+1 (555) 987-6543</phone>
+    <address>
+      <street>123 Main Street</street>
+      <city>New York</city>
+      <state>NY</state>
+      <zip>10001</zip>
+      <country>USA</country>
+    </address>
+    <notes>Primary contact for project A</notes>
+  </contact>
+  <contact id="2">
+    <name>Jane Doe</name>
+    <email>jane.doe@example.com</email>
+    <phone type="mobile">+1 (555) 234-5678</phone>
+    <address>
+      <street>456 Oak Avenue</street>
+      <city>Los Angeles</city>
+      <state>CA</state>
+      <zip>90001</zip>
+      <country>USA</country>
+    </address>
+    <notes>Marketing department head</notes>
+  </contact>
+</contacts>`,
+            
+            config: `<?xml version="1.0" encoding="UTF-8"?>
+<config>
+  <database>
+    <host>localhost</host>
+    <port>3306</port>
+    <name>my_database</name>
+    <username>db_user</username>
+    <password encrypted="true">encrypted_password_here</password>
+    <pool>
+      <min-connections>5</min-connections>
+      <max-connections>50</max-connections>
+      <connection-timeout>30000</connection-timeout>
+    </pool>
+  </database>
+  <server>
+    <host>0.0.0.0</host>
+    <port>8080</port>
+    <ssl enabled="false">
+      <certificate-path>/path/to/cert.pem</certificate-path>
+      <key-path>/path/to/key.pem</key-path>
+    </ssl>
+    <logging level="info">
+      <file>/var/log/app.log</file>
+      <max-size>10MB</max-size>
+      <backup-count>5</backup-count>
+    </logging>
+  </server>
+  <features>
+    <cache enabled="true" size="100MB" />
+    <compression enabled="true" />
+    <rate-limiting enabled="true" requests-per-minute="100" />
+  </features>
+</config>`,
+            
+            rss: `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Tech News Daily</title>
+    <link>https://technews.example.com</link>
+    <description>Latest technology news and updates</description>
+    <language>en-us</language>
+    <pubDate>Mon, 06 Nov 2023 08:00:00 GMT</pubDate>
+    <lastBuildDate>Mon, 06 Nov 2023 08:00:00 GMT</lastBuildDate>
+    <docs>https://www.rssboard.org/rss-specification</docs>
+    <generator>Custom RSS Generator 2.0</generator>
+    <managingEditor>editor@technews.example.com</managingEditor>
+    <webMaster>webmaster@technews.example.com</webMaster>
+    
+    <item>
+      <title>New JavaScript Framework Released</title>
+      <link>https://technews.example.com/article1</link>
+      <description>The development team has released version 3.0 of their popular JavaScript framework with new features.</description>
+      <pubDate>Sun, 05 Nov 2023 14:30:00 GMT</pubDate>
+      <guid isPermaLink="false">https://technews.example.com/article1</guid>
+      <category>JavaScript</category>
+      <category>Web Development</category>
+    </item>
+    
+    <item>
+      <title>AI Breakthrough in Natural Language Processing</title>
+      <link>https://technews.example.com/article2</link>
+      <description>Researchers announce significant advances in AI language models that better understand context.</description>
+      <pubDate>Sat, 04 Nov 2023 10:15:00 GMT</pubDate>
+      <guid isPermaLink="false">https://technews.example.com/article2</guid>
+      <category>Artificial Intelligence</category>
+      <category>Research</category>
+    </item>
+  </channel>
+</rss>`,
+            
+            menu: `<?xml version="1.0" encoding="UTF-8"?>
+<menu>
+  <item name="Home" url="/" icon="home">
+    <description>Go to the homepage</description>
+  </item>
+  <item name="Products" url="/products" icon="shopping-bag">
+    <description>Browse our product catalog</description>
+    <submenu>
+      <item name="Electronics" url="/products/electronics" />
+      <item name="Books" url="/products/books" />
+      <item name="Clothing" url="/products/clothing" />
+    </submenu>
+  </item>
+  <item name="Services" url="/services" icon="cogs">
+    <description>Our professional services</description>
+    <submenu>
+      <item name="Consulting" url="/services/consulting" />
+      <item name="Development" url="/services/development" />
+      <item name="Support" url="/services/support" />
+    </submenu>
+  </item>
+  <item name="About" url="/about" icon="info-circle">
+    <description>Learn more about our company</description>
+    <submenu>
+      <item name="Company" url="/about/company" />
+      <item name="Team" url="/about/team" />
+      <item name="Careers" url="/about/careers" />
+    </submenu>
+  </item>
+  <item name="Contact" url="/contact" icon="envelope">
+    <description>Get in touch with us</description>
+  </item>
+</menu>`,
+            
+            products: `<?xml version="1.0" encoding="UTF-8"?>
+<products>
+  <category name="Electronics" id="cat1">
+    <product id="p101">
+      <name>Smartphone X</name>
+      <brand>TechBrand</brand>
+      <description>Latest smartphone with advanced camera and 5G capability</description>
+      <price currency="USD">899.99</price>
+      <stock>150</stock>
+      <specs>
+        <display>6.5" OLED</display>
+        <processor>Octa-core 3.2GHz</processor>
+        <memory>8GB RAM, 256GB Storage</memory>
+        <camera>Triple 48MP + 12MP + 8MP</camera>
+        <battery>4500mAh</battery>
+      </specs>
+      <tags>
+        <tag>smartphone</tag>
+        <tag>5g</tag>
+        <tag>android</tag>
+      </tags>
+    </product>
+    
+    <product id="p102">
+      <name>Wireless Headphones Pro</name>
+      <brand>SoundMaster</brand>
+      <description>Noise-cancelling wireless headphones with premium sound quality</description>
+      <price currency="USD">249.99</price>
+      <stock>75</stock>
+      <specs>
+        <battery-life>30 hours</battery-life>
+        <connectivity>Bluetooth 5.2</connectivity>
+        <noise-cancellation>Active</noise-cancellation>
+        <microphone>Built-in with noise reduction</microphone>
+      </specs>
+      <tags>
+        <tag>headphones</tag>
+        <tag>wireless</tag>
+        <tag>audio</tag>
+      </tags>
+    </product>
+  </category>
+</products>`,
+            
+            students: `<?xml version="1.0" encoding="UTF-8"?>
+<students>
+  <student roll="101">
+    <personal>
+      <name>Alex Johnson</name>
+      <date-of-birth>2005-03-15</date-of-birth>
+      <gender>Male</gender>
+      <contact>
+        <email>alex.johnson@school.edu</email>
+        <phone>+1 (555) 123-4567</phone>
+        <address>
+          <street>123 College Ave</street>
+          <city>Boston</city>
+          <state>MA</state>
+          <zip>02115</zip>
+        </address>
+      </contact>
+    </personal>
+    <academic>
+      <major>Computer Science</major>
+      <year>Junior</year>
+      <gpa>3.8</gpa>
+      <courses>
+        <course code="CS101" name="Introduction to Programming" grade="A" credits="3" />
+        <course code="CS201" name="Data Structures" grade="A-" credits="4" />
+        <course code="MATH202" name="Calculus II" grade="B+" credits="4" />
+      </courses>
+    </academic>
+  </student>
+</students>`,
+            
+            inventory: `<?xml version="1.0" encoding="UTF-8"?>
+<inventory last-updated="2023-11-06T08:00:00Z">
+  <warehouse id="WH001" location="New York">
+    <item sku="A123456">
+      <name>Laptop Pro 15"</name>
+      <category>Electronics</category>
+      <supplier>TechSupplier Inc.</supplier>
+      <unit-price currency="USD">1299.99</unit-price>
+      <quantity>42</quantity>
+      <reorder-level>10</reorder-level>
+      <location>Aisle 3, Shelf B</location>
+      <last-restocked>2023-10-28</last-restocked>
+      <notes>Latest model with updated processor</notes>
+    </item>
+    
+    <item sku="B789012">
+      <name>Office Chair Ergonomic</name>
+      <category>Furniture</category>
+      <supplier>OfficeFurnish Co.</supplier>
+      <unit-price currency="USD">349.99</unit-price>
+      <quantity>18</quantity>
+      <reorder-level>5</reorder-level>
+      <location>Aisle 7, Shelf D</location>
+      <last-restocked>2023-11-01</last-restocked>
+      <notes>Black mesh back, adjustable height</notes>
+    </item>
+    
+    <item sku="C345678">
+      <name>Wireless Mouse</name>
+      <category>Accessories</category>
+      <supplier>Peripherals Ltd.</supplier>
+      <unit-price currency="USD">24.99</unit-price>
+      <quantity>156</quantity>
+      <reorder-level>25</reorder-level>
+      <location>Aisle 2, Shelf A</location>
+      <last-restocked>2023-11-05</last-restocked>
+      <notes>Battery included, 2.4GHz connection</notes>
+    </item>
+  </warehouse>
+</inventory>`
+        };
+
+        // Add click handlers to example cards
+        exampleCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const exampleType = this.dataset.example;
+                const exampleCode = examples[exampleType];
+                
+                if (exampleCode) {
+                    // Animate card click
+                    this.style.transform = 'translateY(-8px) scale(1.02)';
+                    setTimeout(() => {
+                        this.style.transform = 'translateY(-8px) scale(1.02)';
+                    }, 150);
+                    
+                    // Load example into editor
+                    editor.setValue(exampleCode);
+                    
+                    // Show message in result panel
+                    showResult(`Loaded "${exampleType.replace(/^\w/, c => c.toUpperCase())}" example into editor!`, "success");
+                    
+                    // Scroll editor into view on mobile
+                    if (window.innerWidth < 768) {
+                        document.querySelector('.editor-section').scrollIntoView({ behavior: 'smooth' });
+                    }
+                }
+            });
+        });
+
+        // In-view animations for example cards
+        function checkCardVisibility() {
+            const cards = document.querySelectorAll('.example-card:not(.in-view)');
+            
+            cards.forEach(card => {
+                const rect = card.getBoundingClientRect();
+                const isVisible = (
+                    rect.top <= (window.innerHeight || document.documentElement.clientHeight) * 0.9
+                );
+                
+                if (isVisible) {
+                    card.classList.add('in-view');
+                }
+            });
+        }
+        
+        // Scroll to top functionality
+        const scrollToTopBtn = document.getElementById('scrollToTop');
+        
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                scrollToTopBtn.classList.add('visible');
+            } else {
+                scrollToTopBtn.classList.remove('visible');
+            }
+            
+            // Check card visibility on scroll
+            checkCardVisibility();
+        });
+        
+        scrollToTopBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+        
+        // Load saved XML on page load
+        const savedCode = localStorage.getItem('xmlEditorCode');
+        if (savedCode) editor.setValue(savedCode);
+
+        // Auto-save when editor changes
+        let saveTimeout;
+        editor.on('change', () => {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                localStorage.setItem('xmlEditorCode', editor.getValue());
+            }, 1000);
+        });
+        
+        // Initial check for visible cards
+        window.addEventListener('load', checkCardVisibility);
+        setTimeout(checkCardVisibility, 100);
+        
+        // Initialize with welcome message
+        setTimeout(() => {
+            showResult("Welcome to the Enhanced XML Editor! Try formatting or validating your XML, or load an example from the right panel.", "info");
+        }, 500);
+    </script>
+</body>
+</html>
