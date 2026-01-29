@@ -1,0 +1,2560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Code Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/eclipse.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #306998;
+            --secondary: #FFD43B;
+            --dark-bg: #1e1e1e;
+            --light-bg: #f8f9fa;
+            --dark-text: #333;
+            --light-text: #f8f9fa;
+            --success: #28a745;
+            --error: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --border-radius: 8px;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            color: var(--dark-text);
+            transition: var(--transition);
+            min-height: 100vh;
+        }
+
+        body.dark-mode {
+            background-color: var(--dark-bg);
+            color: var(--light-text);
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes typewriter {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        @keyframes snakeRun {
+            0% { left: 0; }
+            100% { left: calc(100% - 40px); }
+        }
+
+        .pulse-animation {
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary), #4B8BBE);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+        }
+
+        .logo i {
+            color: var(--secondary);
+            font-size: 1.8rem;
+            animation: pulse 2s infinite;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .logo h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--secondary);
+            transition: width 0.3s ease;
+        }
+
+        .logo:hover h1::after {
+            width: 100%;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .control-btn i {
+            font-size: 1.1rem;
+        }
+
+        .run-btn {
+            background-color: var(--success);
+        }
+
+        .clear-btn {
+            background-color: var(--warning);
+            color: #333;
+        }
+
+        .home-btn {
+            background-color: var(--info);
+        }
+
+        .debug-btn {
+            background-color: #9c27b0;
+        }
+
+        .about-btn {
+            background-color: #ff5722;
+        }
+
+        /* Theme toggle */
+        .theme-toggle {
+            position: relative;
+            width: 60px;
+            height: 30px;
+        }
+
+        .theme-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 34px;
+            transition: var(--transition);
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            border-radius: 50%;
+            transition: var(--transition);
+            animation: pulse 2s infinite;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: var(--secondary);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(30px);
+        }
+
+        /* Main Container */
+        .container {
+            display: flex;
+            height: calc(100vh - 70px);
+            padding: 20px;
+            gap: 20px;
+        }
+
+        /* Editor Section */
+        .editor-section {
+            flex: 3;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        body.dark-mode .editor-header {
+            background: #2d2d2d;
+        }
+
+        .editor-header h2 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--primary);
+        }
+
+        .editor-header h2 i {
+            color: var(--secondary);
+            animation: spin 4s linear infinite;
+        }
+
+        .editor-options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .option-btn {
+            background: none;
+            border: 1px solid #ddd;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        body.dark-mode .option-btn {
+            border-color: #555;
+            color: #eee;
+        }
+
+        .option-btn:hover {
+            background: #f0f0f0;
+            transform: scale(1.1);
+        }
+
+        body.dark-mode .option-btn:hover {
+            background: #444;
+        }
+
+        .editor-container {
+            flex: 1;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            animation: fadeIn 0.8s ease-in;
+        }
+
+        .CodeMirror {
+            height: 100% !important;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Output Section */
+        .output-section {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            animation: slideIn 0.5s ease-out 0.1s both;
+        }
+
+        body.dark-mode .output-header {
+            background: #2d2d2d;
+        }
+
+        .output-header h2 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--primary);
+        }
+
+        .output-header h2 i {
+            color: var(--secondary);
+            animation: pulse 1.5s infinite;
+        }
+
+        .output-container {
+            flex: 1;
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: var(--shadow);
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            animation: fadeIn 0.8s ease-in 0.2s both;
+        }
+
+        body.dark-mode .output-container {
+            background: #2d2d2d;
+        }
+
+        .output-line {
+            margin-bottom: 8px;
+            padding-left: 10px;
+            border-left: 3px solid transparent;
+            white-space: pre-wrap;
+            word-break: break-word;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .output-line.info {
+            color: var(--info);
+            border-left-color: var(--info);
+        }
+
+        .output-line.success {
+            color: var(--success);
+            border-left-color: var(--success);
+        }
+
+        .output-line.error {
+            color: var(--error);
+            border-left-color: var(--error);
+        }
+
+        .output-line.warning {
+            color: var(--warning);
+            border-left-color: var(--warning);
+        }
+
+        .output-line.output {
+            color: inherit;
+            border-left-color: #666;
+        }
+
+        .output-line.debug {
+            color: #9c27b0;
+            border-left-color: #9c27b0;
+            font-style: italic;
+        }
+
+        /* Terminal Input */
+        .terminal-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: var(--border-radius);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        body.dark-mode .terminal-input {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .terminal-input span {
+            color: var(--success);
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+
+        .terminal-input input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: inherit;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .terminal-input input:focus {
+            animation: pulse 1s infinite;
+        }
+
+        /* Examples Panel */
+        .examples-panel {
+            margin-top: 20px;
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            animation: fadeIn 0.8s ease-in 0.3s both;
+        }
+
+        body.dark-mode .examples-panel {
+            background: #2d2d2d;
+        }
+
+        .examples-panel h3 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .examples-panel h3 i {
+            animation: spin 4s linear infinite;
+        }
+
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .example-btn {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: left;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        body.dark-mode .example-btn {
+            background: #3a3a3a;
+            border-color: #555;
+            color: #eee;
+        }
+
+        .example-btn:hover {
+            border-color: var(--primary);
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: var(--shadow);
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        .example-btn h4 {
+            color: var(--primary);
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+
+        .example-btn p {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        body.dark-mode .example-btn p {
+            color: #aaa;
+        }
+
+        /* Snake animation */
+        .snake-container {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            width: 40px;
+            height: 40px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .snake {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            animation: snakeRun 3s linear infinite;
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        body.dark-mode .modal-content {
+            background: #2d2d2d;
+            color: white;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .modal-header h2 {
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--error);
+            transition: var(--transition);
+        }
+
+        .close-modal:hover {
+            transform: rotate(90deg);
+        }
+
+        /* Debug Panel */
+        .debug-panel {
+            background: #f8f9fa;
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-top: 15px;
+            border-left: 4px solid #9c27b0;
+        }
+
+        body.dark-mode .debug-panel {
+            background: #2d2d2d;
+        }
+
+        .debug-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .debug-item {
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        body.dark-mode .debug-item {
+            background: #3a3a3a;
+        }
+
+        /* About Python Content */
+        .python-facts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .fact-card {
+            background: linear-gradient(135deg, var(--primary), #4B8BBE);
+            color: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+        }
+
+        .fact-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .fact-card h3 {
+            color: var(--secondary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Code Visualization */
+        .code-visualization {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 15px;
+            background: white;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid #eee;
+            animation: fadeIn 1s ease-in 0.5s both;
+        }
+
+        body.dark-mode .footer {
+            background: #2d2d2d;
+            border-top-color: #444;
+            color: #aaa;
+        }
+
+        .footer a {
+            color: var(--primary);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+            color: var(--secondary);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .editor-container, .output-container {
+                min-height: 400px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                padding: 1rem;
+            }
+            
+            .controls {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .examples-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Console-like styling */
+        #output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        #output::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #output::-webkit-scrollbar-track {
+            background: #2d2d2d;
+        }
+
+        #output::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 4px;
+        }
+
+        #output::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        /* Loading animation */
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Status indicator */
+        .status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            animation: pulse 2s infinite;
+        }
+
+        .status.running {
+            background: rgba(40, 167, 69, 0.2);
+            color: var(--success);
+        }
+
+        .status.idle {
+            background: rgba(108, 117, 125, 0.2);
+            color: #6c757d;
+        }
+
+        .status.error {
+            background: rgba(220, 53, 69, 0.2);
+            color: var(--error);
+        }
+
+        /* Typewriter effect */
+        .typewriter {
+            overflow: hidden;
+            border-right: .15em solid var(--secondary);
+            white-space: nowrap;
+            animation: typewriter 3.5s steps(40, end), blink-caret .75s step-end infinite;
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent; }
+            50% { border-color: var(--secondary); }
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            width: 0%;
+            transition: width 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo" id="logo">
+            <i class="fab fa-python"></i>
+            <h1>Python Code Editor</h1>
+        </div>
+        <div class="controls">
+            <button class="control-btn home-btn" id="homeBtn">
+                <i class="fas fa-home"></i> Home
+            </button>
+            <button class="control-btn about-btn" id="aboutBtn">
+                <i class="fas fa-info-circle"></i> About Python
+            </button>
+            <button class="control-btn debug-btn" id="debugBtn">
+                <i class="fas fa-bug"></i> Debug
+            </button>
+            <button class="control-btn run-btn" id="runBtn">
+                <i class="fas fa-play"></i> Run Code
+            </button>
+            <button class="control-btn clear-btn" id="clearBtn">
+                <i class="fas fa-broom"></i> Clear Output
+            </button>
+            <button class="control-btn" id="saveBtn">
+                <i class="fas fa-save"></i> Save
+            </button>
+            <button class="control-btn" id="shareBtn">
+                <i class="fas fa-share-alt"></i> Share
+            </button>
+            <div class="theme-toggle">
+                <input type="checkbox" id="themeToggle">
+                <label class="toggle-slider" for="themeToggle"></label>
+            </div>
+        </div>
+    </header>
+
+    <!-- Snake Animation -->
+    <div class="snake-container" id="snakeContainer">
+        <div class="snake"></div>
+    </div>
+
+    <!-- About Python Modal -->
+    <div class="modal" id="aboutModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fab fa-python"></i> About Python</h2>
+                <button class="close-modal" id="closeAboutModal">&times;</button>
+            </div>
+            <div class="typewriter">
+                <h3>Python: The Programming Language for Everyone</h3>
+            </div>
+            
+            <div class="python-facts">
+                <div class="fact-card">
+                    <h3><i class="fas fa-lightbulb"></i> What is Python?</h3>
+                    <p>Python is a high-level, interpreted programming language known for its simplicity and readability. Created by Guido van Rossum and first released in 1991.</p>
+                </div>
+                <div class="fact-card">
+                    <h3><i class="fas fa-rocket"></i> Key Features</h3>
+                    <p>• Easy to learn and use<br>• Versatile (Web, Data Science, AI, etc.)<br>• Large standard library<br>• Strong community support</p>
+                </div>
+                <div class="fact-card">
+                    <h3><i class="fas fa-code"></i> Popular Uses</h3>
+                    <p>• Web Development (Django, Flask)<br>• Data Science & Machine Learning<br>• Automation & Scripting<br>• Scientific Computing</p>
+                </div>
+            </div>
+
+            <div class="code-visualization">
+                <h4><i class="fas fa-code"></i> Why Python is Great:</h4>
+                <pre><code>
+# Clean and readable syntax
+def calculate_average(numbers):
+    return sum(numbers) / len(numbers)
+
+# Powerful one-liners
+squares = [x**2 for x in range(10)]
+
+# Built-in libraries
+import math, json, os, datetime
+
+# Object-oriented and functional
+class Animal:
+    def __init__(self, name):
+        self.name = name
+    
+    def speak(self):
+        return f"{self.name} makes a sound"
+
+# Extensive third-party packages
+# pandas, numpy, tensorflow, django, flask, etc.
+                </code></pre>
+            </div>
+
+            <div class="debug-panel">
+                <h4><i class="fas fa-chart-line"></i> Python Statistics:</h4>
+                <div class="debug-info">
+                    <div class="debug-item">Release Year: 1991</div>
+                    <div class="debug-item">Latest Version: 3.12+</div>
+                    <div class="debug-item">Paradigm: Multi-paradigm</div>
+                    <div class="debug-item">TIOBE Rank: #1 (2023)</div>
+                </div>
+            </div>
+
+            <button class="control-btn run-btn" style="margin-top: 20px; width: 100%;" id="runHelloWorld">
+                <i class="fas fa-magic"></i> Run Hello World Example
+            </button>
+        </div>
+    </div>
+
+    <!-- Debug Modal -->
+    <div class="modal" id="debugModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-bug"></i> Debug Tools</h2>
+                <button class="close-modal" id="closeDebugModal">&times;</button>
+            </div>
+            
+            <div class="debug-panel">
+                <h3><i class="fas fa-tools"></i> Debug Utilities</h3>
+                <div class="debug-info">
+                    <div class="debug-item" id="codeLength">Code Length: 0 chars</div>
+                    <div class="debug-item" id="lineCount">Lines: 0</div>
+                    <div class="debug-item" id="functionCount">Functions: 0</div>
+                    <div class="debug-item" id="classCount">Classes: 0</div>
+                </div>
+            </div>
+
+            <div class="debug-panel">
+                <h3><i class="fas fa-search"></i> Code Analysis</h3>
+                <button class="control-btn" id="analyzeBtn" style="width: 100%; margin-bottom: 10px;">
+                    <i class="fas fa-search"></i> Analyze Code
+                </button>
+                <div id="analysisResults"></div>
+            </div>
+
+            <div class="debug-panel">
+                <h3><i class="fas fa-vial"></i> Test Runner</h3>
+                <button class="control-btn run-btn" id="testBtn" style="width: 100%; margin-bottom: 10px;">
+                    <i class="fas fa-vial"></i> Run Quick Tests
+                </button>
+                <div class="progress-bar">
+                    <div class="progress" id="testProgress"></div>
+                </div>
+                <div id="testResults"></div>
+            </div>
+
+            <div class="debug-panel">
+                <h3><i class="fas fa-cogs"></i> Performance Tools</h3>
+                <button class="control-btn" id="performanceBtn" style="width: 100%;">
+                    <i class="fas fa-stopwatch"></i> Check Performance
+                </button>
+                <div id="performanceResults" style="margin-top: 10px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Editor Section -->
+        <section class="editor-section">
+            <div class="editor-header">
+                <h2><i class="fas fa-code"></i> Python Editor</h2>
+                <div class="editor-options">
+                    <button class="option-btn" id="fontIncrease"><i class="fas fa-plus"></i></button>
+                    <button class="option-btn" id="fontDecrease"><i class="fas fa-minus"></i></button>
+                    <button class="option-btn" id="formatBtn">Format</button>
+                    <button class="option-btn" id="showSnake">
+                        <i class="fas fa-running"></i> Snake
+                    </button>
+                </div>
+            </div>
+            <div class="editor-container">
+                <textarea id="codeEditor" placeholder="# Write your Python code here..."></textarea>
+            </div>
+            
+            <!-- Examples Panel -->
+            <div class="examples-panel">
+                <h3><i class="fas fa-lightbulb"></i> Code Examples</h3>
+                <div class="examples-grid">
+                    <button class="example-btn" data-example="hello">
+                        <h4>Hello World</h4>
+                        <p>Basic Python program</p>
+                    </button>
+                    <button class="example-btn" data-example="calculator">
+                        <h4>Calculator</h4>
+                        <p>Simple arithmetic operations</p>
+                    </button>
+                    <button class="example-btn" data-example="fibonacci">
+                        <h4>Fibonacci</h4>
+                        <p>Generate Fibonacci sequence</p>
+                    </button>
+                    <button class="example-btn" data-example="sorting">
+                        <h4>Sorting</h4>
+                        <p>Bubble sort algorithm</p>
+                    </button>
+                    <button class="example-btn" data-example="files">
+                        <h4>File Handling</h4>
+                        <p>Read/write file operations</p>
+                    </button>
+                    <button class="example-btn" data-example="oop">
+                        <h4>OOP Example</h4>
+                        <p>Classes and objects</p>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Output Section -->
+        <section class="output-section">
+            <div class="output-header">
+                <h2><i class="fas fa-terminal"></i> Output Console</h2>
+                <div class="status idle" id="statusIndicator">
+                    <i class="fas fa-circle"></i> Ready
+                </div>
+            </div>
+            <div class="output-container">
+                <div id="output">
+                    <div class="output-line info">
+                        <i class="fas fa-info-circle"></i> Welcome to Python Code Editor!
+                    </div>
+                    <div class="output-line info">
+                        <i class="fas fa-info-circle"></i> Click "Run Code" to execute your Python program
+                    </div>
+                    <div class="output-line info">
+                        <i class="fas fa-info-circle"></i> Try the code examples to get started
+                    </div>
+                </div>
+                <!-- Terminal Input for Python input() function -->
+                <div class="terminal-input" id="terminalInput" style="display: none;">
+                    <span>&gt;&gt;&gt;</span>
+                    <input type="text" id="userInput" placeholder="Enter input for Python program...">
+                    <button class="control-btn run-btn" id="submitInput" style="padding: 5px 10px;">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>
+            <i class="fas fa-code"></i> Python Code Editor | 
+            <i class="fas fa-shield-alt"></i> Safe Execution Environment | 
+            <i class="fas fa-bolt"></i> Powered by Pyodide
+        </p>
+        <p style="margin-top: 8px; font-size: 0.85rem;">
+            Note: This editor runs Python in the browser using WebAssembly. Some modules may not be available.
+        </p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/comment/comment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/display/autorefresh.min.js"></script>
+    
+    <!-- Pyodide (Python in Browser) -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+    
+    <script>
+        // Initialize CodeMirror Editor
+        const editor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+            mode: 'python',
+            theme: 'eclipse',
+            lineNumbers: true,
+            indentUnit: 4,
+            smartIndent: true,
+            matchBrackets: true,
+            autoRefresh: true,
+            extraKeys: {
+                'Ctrl-Space': 'autocomplete',
+                'Ctrl-/': 'toggleComment',
+                'Tab': function(cm) {
+                    cm.replaceSelection('    ', 'end');
+                }
+            }
+        });
+
+        // Set initial Python code
+        editor.setValue(`# Welcome to Python Code Editor!
+# This is a sample Python program
+# Click "Run Code" to execute it
+
+def greet(name):
+    """A simple greeting function"""
+    return f"Hello, {name}! Welcome to Python programming."
+
+def fibonacci(n):
+    """Generate Fibonacci sequence up to n terms"""
+    sequence = [0, 1]
+    while len(sequence) < n:
+        sequence.append(sequence[-1] + sequence[-2])
+    return sequence[:n]
+
+def main():
+    # Get user input
+    name = input("Enter your name: ")
+    
+    # Call greeting function
+    print(greet(name))
+    print("-" * 40)
+    
+    # Generate Fibonacci sequence
+    terms = 10
+    fib_seq = fibonacci(terms)
+    print(f"First {terms} Fibonacci numbers:")
+    for i, num in enumerate(fib_seq, 1):
+        print(f"Term {i}: {num}")
+    
+    # Demonstrate list comprehension
+    squares = [x**2 for x in range(1, 6)]
+    print(f"\\nSquares of 1-5: {squares}")
+    
+    # Dictionary example
+    student = {
+        "name": name,
+        "languages": ["Python", "JavaScript", "HTML/CSS"],
+        "level": "Intermediate"
+    }
+    
+    print(f"\\nStudent Info: {student['name']} knows {len(student['languages'])} languages")
+    
+    return "Program executed successfully!"
+
+if __name__ == "__main__":
+    result = main()
+    print(f"\\n✓ {result}")
+
+# Try modifying this code or load an example from the panel below!`);
+
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem('editorTheme');
+        if (savedTheme === 'dark') {
+            body.classList.add('dark-mode');
+            themeToggle.checked = true;
+            editor.setOption('theme', 'dracula');
+        }
+        
+        themeToggle.addEventListener('change', () => {
+            body.classList.toggle('dark-mode');
+            if (body.classList.contains('dark-mode')) {
+                editor.setOption('theme', 'dracula');
+                localStorage.setItem('editorTheme', 'dark');
+                addOutput('info', 'Switched to dark theme 🌙');
+            } else {
+                editor.setOption('theme', 'eclipse');
+                localStorage.setItem('editorTheme', 'light');
+                addOutput('info', 'Switched to light theme ☀️');
+            }
+        });
+
+        // Initialize Pyodide
+        let pyodide;
+        let inputResolver = null;
+        let isExecuting = false;
+        
+        async function initializePyodide() {
+            const status = document.getElementById('statusIndicator');
+            
+            status.className = 'status running';
+            status.innerHTML = '<div class="loader"></div> Initializing Python...';
+            
+            try {
+                pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/"
+                });
+                
+                // Set up input handling
+                pyodide.setStdin({
+                    stdin: () => {
+                        return new Promise((resolve) => {
+                            // Show input field
+                            document.getElementById('terminalInput').style.display = 'flex';
+                            document.getElementById('userInput').focus();
+                            
+                            // Store the resolver
+                            inputResolver = resolve;
+                        });
+                    }
+                });
+                
+                status.className = 'status success';
+                status.innerHTML = '<i class="fas fa-check-circle"></i> Python Ready';
+                
+                addOutput('success', '✓ Python environment initialized successfully!');
+                addOutput('info', '✓ Standard libraries available');
+                addOutput('info', '✓ Ready to execute code');
+                
+                // Add some Python packages
+                try {
+                    await pyodide.loadPackage(['micropip']);
+                    addOutput('success', '✓ Additional packages loaded');
+                } catch (e) {
+                    addOutput('warning', 'Note: Some packages may not be available');
+                }
+                
+            } catch (error) {
+                status.className = 'status error';
+                status.innerHTML = '<i class="fas fa-exclamation-circle"></i> Initialization Failed';
+                addOutput('error', `Failed to initialize Python: ${error.message}`);
+                addOutput('info', 'Please refresh the page or check your internet connection');
+            }
+        }
+
+        // Handle user input for Python's input() function
+        document.getElementById('submitInput').addEventListener('click', () => {
+            const userInput = document.getElementById('userInput');
+            if (inputResolver && userInput.value !== '') {
+                const inputValue = userInput.value;
+                addOutput('output', `>>> ${inputValue}`);
+                inputResolver(inputValue + '\\n');
+                userInput.value = '';
+                document.getElementById('terminalInput').style.display = 'none';
+                inputResolver = null;
+            }
+        });
+
+        document.getElementById('userInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('submitInput').click();
+            }
+        });
+
+        // Initialize Python when page loads
+        initializePyodide();
+
+        // Run Code Button
+        document.getElementById('runBtn').addEventListener('click', async () => {
+            if (!pyodide) {
+                addOutput('error', 'Python environment is still initializing. Please wait...');
+                return;
+            }
+            
+            if (isExecuting) {
+                addOutput('warning', 'Code is already executing. Please wait...');
+                return;
+            }
+            
+            const code = editor.getValue();
+            const status = document.getElementById('statusIndicator');
+            
+            // Add animation
+            document.getElementById('runBtn').classList.add('pulse-animation');
+            setTimeout(() => {
+                document.getElementById('runBtn').classList.remove('pulse-animation');
+            }, 500);
+            
+            // Clear previous output but keep welcome message
+            clearOutput();
+            
+            status.className = 'status running';
+            status.innerHTML = '<div class="loader"></div> Running...';
+            isExecuting = true;
+            
+            addOutput('info', 'Executing Python code...');
+            addOutput('output', '─'.repeat(60));
+            
+            try {
+                // Capture console output
+                pyodide.setStdout({
+                    batched: (text) => {
+                        if (text.trim()) {
+                            addOutput('output', text);
+                        }
+                    }
+                });
+                
+                pyodide.setStderr({
+                    batched: (text) => {
+                        if (text.trim()) {
+                            addOutput('error', text);
+                        }
+                    }
+                });
+                
+                // Execute the code
+                await pyodide.runPythonAsync(code);
+                
+                status.className = 'status success';
+                status.innerHTML = '<i class="fas fa-check-circle"></i> Execution Complete';
+                
+                addOutput('output', '─'.repeat(60));
+                addOutput('success', '✓ Program executed successfully! 🎉');
+                
+                // Play success animation
+                showSnakeAnimation();
+                
+            } catch (error) {
+                status.className = 'status error';
+                status.innerHTML = '<i class="fas fa-exclamation-circle"></i> Error';
+                
+                addOutput('error', `Error: ${error.message}`);
+                addOutput('info', '💡 Tip: Check your code for syntax errors or logical mistakes.');
+                
+                // Debug info
+                if (error.message.includes('SyntaxError')) {
+                    addOutput('debug', '🔍 This looks like a syntax error. Check for missing colons, parentheses, or quotes.');
+                } else if (error.message.includes('NameError')) {
+                    addOutput('debug', '🔍 This looks like a variable name error. Make sure all variables are defined before use.');
+                } else if (error.message.includes('IndentationError')) {
+                    addOutput('debug', '🔍 Python is strict about indentation! Use consistent spaces (usually 4).');
+                }
+                
+            } finally {
+                isExecuting = false;
+                document.getElementById('terminalInput').style.display = 'none';
+                inputResolver = null;
+                updateDebugInfo();
+            }
+        });
+
+        // Clear Output Button with animation
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('clearBtn').classList.add('pulse-animation');
+            setTimeout(() => {
+                document.getElementById('clearBtn').classList.remove('pulse-animation');
+            }, 500);
+            
+            clearOutput();
+            addOutput('info', 'Output cleared successfully! 🧹');
+            addOutput('info', 'Ready for new execution 🚀');
+        });
+
+        // Clear output but keep essential messages
+        function clearOutput() {
+            const output = document.getElementById('output');
+            output.innerHTML = `
+                <div class="output-line info">
+                    <i class="fas fa-info-circle"></i> Output cleared at ${new Date().toLocaleTimeString()}
+                </div>
+                <div class="output-line info">
+                    <i class="fas fa-info-circle"></i> Ready for new execution
+                </div>
+            `;
+        }
+
+        // Home Button
+        document.getElementById('homeBtn').addEventListener('click', () => {
+            if (confirm('Are you sure you want to go back to home? Any unsaved code will be lost.')) {
+                // Add transition effect
+                document.body.style.opacity = '0.5';
+                document.body.style.transition = 'opacity 0.5s';
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 500);
+            }
+        });
+
+        // Font size controls
+        let fontSize = 14;
+        document.getElementById('fontIncrease').addEventListener('click', () => {
+            fontSize = Math.min(fontSize + 1, 24);
+            editor.getWrapperElement().style.fontSize = `${fontSize}px`;
+            editor.refresh();
+            addOutput('info', `Font size increased to ${fontSize}px`);
+        });
+        
+        document.getElementById('fontDecrease').addEventListener('click', () => {
+            fontSize = Math.max(fontSize - 1, 10);
+            editor.getWrapperElement().style.fontSize = `${fontSize}px`;
+            editor.refresh();
+            addOutput('info', `Font size decreased to ${fontSize}px`);
+        });
+
+        // Format button with better formatting
+        document.getElementById('formatBtn').addEventListener('click', () => {
+            const code = editor.getValue();
+            
+            // Basic formatting - fix indentation and spacing
+            const lines = code.split('\n');
+            let indent = 0;
+            let inMultilineString = false;
+            let stringChar = '';
+            
+            const formatted = lines.map(line => {
+                const trimmed = line.trim();
+                
+                // Skip empty lines
+                if (trimmed === '') {
+                    return '';
+                }
+                
+                // Handle multiline strings
+                if (!inMultilineString) {
+                    const stringMatch = trimmed.match(/^['"`]{3}/);
+                    if (stringMatch) {
+                        inMultilineString = true;
+                        stringChar = stringMatch[0];
+                        return ' '.repeat(indent * 4) + trimmed;
+                    }
+                } else {
+                    if (trimmed.includes(stringChar.repeat(3))) {
+                        inMultilineString = false;
+                    }
+                    return ' '.repeat(indent * 4) + trimmed;
+                }
+                
+                // Handle dedent for certain keywords
+                if (trimmed.startsWith('return ') || trimmed === 'return' ||
+                    trimmed.startsWith('pass') || trimmed === 'pass' ||
+                    trimmed.startsWith('break') || trimmed === 'break' ||
+                    trimmed.startsWith('continue') || trimmed === 'continue' ||
+                    trimmed.startsWith('raise ') || trimmed === 'raise') {
+                    const result = ' '.repeat(indent * 4) + trimmed;
+                    return result;
+                }
+                
+                // Handle dedent for else/elif
+                if (trimmed.startsWith('elif ') || trimmed.startsWith('else:') || 
+                    trimmed.startsWith('except ') || trimmed.startsWith('finally:')) {
+                    indent = Math.max(0, indent - 1);
+                    const result = ' '.repeat(indent * 4) + trimmed;
+                    indent++;
+                    return result;
+                }
+                
+                // Handle indent for block starters
+                if (trimmed.endsWith(':') || trimmed.startsWith('class ') || trimmed.startsWith('def ')) {
+                    const result = ' '.repeat(indent * 4) + trimmed;
+                    indent++;
+                    return result;
+                }
+                
+                // Normal line
+                return ' '.repeat(indent * 4) + trimmed;
+            }).join('\n');
+            
+            editor.setValue(formatted);
+            addOutput('success', 'Code formatted successfully! ✨');
+        });
+
+        // About Python Modal
+        const aboutModal = document.getElementById('aboutModal');
+        const aboutBtn = document.getElementById('aboutBtn');
+        const closeAboutModal = document.getElementById('closeAboutModal');
+        const runHelloWorldBtn = document.getElementById('runHelloWorld');
+
+        aboutBtn.addEventListener('click', () => {
+            aboutModal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        });
+
+        closeAboutModal.addEventListener('click', () => {
+            aboutModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        });
+
+        runHelloWorldBtn.addEventListener('click', () => {
+            aboutModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            editor.setValue(`# Hello World in Python!
+print("Hello, World! 🌍")
+print("Welcome to Python Programming! 🐍")
+print()
+print("Python Features:")
+print("-" * 30)
+print("• Easy to read and write")
+print("• Powerful and versatile")
+print("• Great for beginners")
+print("• Used by Google, NASA, Netflix")
+print()
+print("Let's learn Python together! 🚀")`);
+            addOutput('info', 'Loaded Hello World example from About Python');
+            editor.focus();
+        });
+
+        // Debug Modal
+        const debugModal = document.getElementById('debugModal');
+        const debugBtn = document.getElementById('debugBtn');
+        const closeDebugModal = document.getElementById('closeDebugModal');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const testBtn = document.getElementById('testBtn');
+        const performanceBtn = document.getElementById('performanceBtn');
+
+        debugBtn.addEventListener('click', () => {
+            debugModal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            updateDebugInfo();
+        });
+
+        closeDebugModal.addEventListener('click', () => {
+            debugModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        });
+
+        // Update debug information
+        function updateDebugInfo() {
+            const code = editor.getValue();
+            const lines = code.split('\n').filter(line => line.trim() !== '');
+            const functions = (code.match(/def\s+\w+\s*\(/g) || []).length;
+            const classes = (code.match(/class\s+\w+/g) || []).length;
+            
+            document.getElementById('codeLength').textContent = `Code Length: ${code.length} chars`;
+            document.getElementById('lineCount').textContent = `Lines: ${lines.length}`;
+            document.getElementById('functionCount').textContent = `Functions: ${functions}`;
+            document.getElementById('classCount').textContent = `Classes: ${classes}`;
+        }
+
+        // Code analysis
+        analyzeBtn.addEventListener('click', () => {
+            const code = editor.getValue();
+            const analysisResults = document.getElementById('analysisResults');
+            analysisResults.innerHTML = '<div class="output-line info">Analyzing code...</div>';
+            
+            setTimeout(() => {
+                let issues = [];
+                let suggestions = [];
+                
+                // Check for common issues
+                if (code.includes('print(')) {
+                    suggestions.push('✓ print() function detected - good for debugging');
+                }
+                
+                if (code.includes('def ')) {
+                    suggestions.push('✓ Functions detected - good code organization');
+                }
+                
+                if (code.includes('input(')) {
+                    suggestions.push('✓ User input detected - interactive program');
+                }
+                
+                if (code.match(/[a-zA-Z_][a-zA-Z0-9_]*\s*=\s*[^=].*/)) {
+                    suggestions.push('✓ Variable assignments detected');
+                }
+                
+                // Check for potential issues
+                if (code.includes('while True:')) {
+                    issues.push('⚠ Infinite loop detected - ensure there\'s a break condition');
+                }
+                
+                if (code.includes('import os') || code.includes('import sys')) {
+                    suggestions.push('⚠ System modules imported - may not work in browser');
+                }
+                
+                // Display results
+                analysisResults.innerHTML = `
+                    <div class="output-line success"><i class="fas fa-check"></i> Analysis Complete</div>
+                    ${issues.map(issue => `<div class="output-line warning">${issue}</div>`).join('')}
+                    ${suggestions.map(suggestion => `<div class="output-line info">${suggestion}</div>`).join('')}
+                    <div class="output-line debug">Total checks: ${issues.length + suggestions.length}</div>
+                `;
+            }, 500);
+        });
+
+        // Test runner
+        testBtn.addEventListener('click', async () => {
+            const testResults = document.getElementById('testResults');
+            const testProgress = document.getElementById('testProgress');
+            testResults.innerHTML = '<div class="output-line info">Running tests...</div>';
+            
+            const code = editor.getValue();
+            const tests = [
+                { name: 'Syntax Check', run: () => !code.includes('SyntaxError') },
+                { name: 'Has Main Guard', run: () => code.includes('if __name__') },
+                { name: 'Function Definitions', run: () => code.includes('def ') },
+                { name: 'Print Statements', run: () => code.includes('print(') },
+                { name: 'Comments Present', run: () => code.includes('#') }
+            ];
+            
+            let passed = 0;
+            for (let i = 0; i < tests.length; i++) {
+                testProgress.style.width = `${((i + 1) / tests.length) * 100}%`;
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                const test = tests[i];
+                const passedTest = test.run();
+                if (passedTest) passed++;
+                
+                testResults.innerHTML += `
+                    <div class="output-line ${passedTest ? 'success' : 'warning'}">
+                        <i class="fas fa-${passedTest ? 'check' : 'times'}"></i> ${test.name}
+                    </div>
+                `;
+            }
+            
+            testResults.innerHTML += `
+                <div class="output-line ${passed === tests.length ? 'success' : 'warning'}">
+                    <i class="fas fa-chart-bar"></i> Score: ${passed}/${tests.length} tests passed
+                </div>
+            `;
+            
+            testProgress.style.width = '0%';
+        });
+
+        // Performance check
+        performanceBtn.addEventListener('click', async () => {
+            const performanceResults = document.getElementById('performanceResults');
+            performanceResults.innerHTML = '<div class="output-line info">Checking performance...</div>';
+            
+            const code = editor.getValue();
+            
+            setTimeout(() => {
+                const startTime = performance.now();
+                const lines = code.split('\n').length;
+                const chars = code.length;
+                const functions = (code.match(/def\s+\w+\s*\(/g) || []).length;
+                const loops = (code.match(/(for|while)\s+/g) || []).length;
+                
+                const endTime = performance.now();
+                const analysisTime = endTime - startTime;
+                
+                // Performance rating
+                let rating = 'Good';
+                let ratingColor = 'success';
+                if (lines > 100) rating = 'Large';
+                if (loops > 5) rating = 'Complex';
+                if (analysisTime > 100) rating = 'Heavy';
+                if (rating !== 'Good') ratingColor = 'warning';
+                
+                performanceResults.innerHTML = `
+                    <div class="debug-info">
+                        <div class="debug-item">Lines: ${lines}</div>
+                        <div class="debug-item">Characters: ${chars}</div>
+                        <div class="debug-item">Functions: ${functions}</div>
+                        <div class="debug-item">Loops: ${loops}</div>
+                    </div>
+                    <div class="output-line ${ratingColor}">
+                        <i class="fas fa-tachometer-alt"></i> Performance Rating: ${rating}
+                    </div>
+                    <div class="output-line info">
+                        <i class="fas fa-stopwatch"></i> Analysis time: ${analysisTime.toFixed(2)}ms
+                    </div>
+                `;
+            }, 500);
+        });
+
+        // Snake animation
+        const snakeContainer = document.getElementById('snakeContainer');
+        const showSnakeBtn = document.getElementById('showSnake');
+
+        function showSnakeAnimation() {
+            snakeContainer.style.display = 'block';
+            setTimeout(() => {
+                snakeContainer.style.display = 'none';
+            }, 3000);
+        }
+
+        showSnakeBtn.addEventListener('click', showSnakeAnimation);
+
+        // Example code loader
+        const examples = {
+            hello: `# Hello World Program
+print("Hello, World! 🐍")
+print("Welcome to Python Programming!")
+
+# Variables and data types
+name = "Python Developer"
+age = 25
+height = 5.9
+is_student = True
+
+print(f"\\nName: {name}")
+print(f"Age: {age}")
+print(f"Height: {height}")
+print(f"Is Student: {is_student}")
+
+# Simple calculation with animation
+print("\\n" + "=" * 40)
+print("Simple Calculator Demo")
+print("=" * 40)
+
+a = 10
+b = 3
+print(f"\\n{a} + {b} = {a + b}")
+print(f"{a} - {b} = {a - b}")
+print(f"{a} * {b} = {a * b}")
+print(f"{a} / {b} = {a / b:.2f}")
+print(f"{a} % {b} = {a % b}")
+print(f"{a} ** {b} = {a ** b}")`,
+
+            calculator: `# Interactive Calculator with Error Handling
+import time
+
+def animated_print(text, delay=0.1):
+    """Print text with animation effect"""
+    for char in text:
+        print(char, end='', flush=True)
+        time.sleep(delay)
+    print()
+
+def calculator():
+    animated_print("🧮 Advanced Calculator")
+    animated_print("=" * 40)
+    animated_print("Operations: +, -, *, /, %, **, //")
+    animated_print("Type 'quit' to exit")
+    animated_print("Type 'help' for instructions")
+    
+    operations_count = 0
+    total_calculations = 0
+    
+    while True:
+        try:
+            print(f"\\nCalculation #{operations_count + 1}")
+            print("-" * 30)
+            
+            # Get user input
+            num1 = input("Enter first number (or 'quit'): ").strip()
+            
+            if num1.lower() == 'quit':
+                print(f"\\n📊 Session Statistics:")
+                print(f"   Total calculations: {total_calculations}")
+                print(f"   Successful operations: {operations_count}")
+                animated_print("👋 Goodbye! Thanks for using the calculator!")
+                break
+                
+            if num1.lower() == 'help':
+                print("\\n📖 Help Menu:")
+                print("   + : Addition")
+                print("   - : Subtraction")
+                print("   * : Multiplication")
+                print("   / : Division")
+                print("   % : Modulus (Remainder)")
+                print("   ** : Exponentiation")
+                print("   // : Floor Division")
+                continue
+            
+            num1 = float(num1)
+            operation = input("Enter operation (+, -, *, /, %, **, //): ").strip()
+            num2 = float(input("Enter second number: "))
+            
+            # Perform calculation
+            if operation == '+':
+                result = num1 + num2
+                symbol = "➕"
+            elif operation == '-':
+                result = num1 - num2
+                symbol = "➖"
+            elif operation == '*':
+                result = num1 * num2
+                symbol = "✖️"
+            elif operation == '/':
+                if num2 == 0:
+                    print("❌ Error: Division by zero!")
+                    continue
+                result = num1 / num2
+                symbol = "➗"
+            elif operation == '%':
+                result = num1 % num2
+                symbol = "📊"
+            elif operation == '**':
+                result = num1 ** num2
+                symbol = "⚡"
+            elif operation == '//':
+                result = num1 // num2
+                symbol = "🔽"
+            else:
+                print("❌ Invalid operation! Please use +, -, *, /, %, **, or //")
+                continue
+            
+            print(f"\\n{symbol} Result: {num1} {operation} {num2} = {result}")
+            
+            operations_count += 1
+            total_calculations += 1
+            
+        except ValueError:
+            print("❌ Invalid input! Please enter numbers only.")
+        except KeyboardInterrupt:
+            print("\\n🛑 Calculator stopped by user")
+            break
+        except Exception as e:
+            print(f"❌ Unexpected error: {e}")
+
+if __name__ == "__main__":
+    calculator()`,
+
+            fibonacci: `# Fibonacci Sequence Generator with Visualization
+import time
+
+def fibonacci_sequence(n, speed=0.3):
+    """Generate Fibonacci sequence with visual animation"""
+    if n <= 0:
+        return []
+    elif n == 1:
+        return [0]
+    elif n == 2:
+        return [0, 1]
+    
+    sequence = [0, 1]
+    print("🎯 Generating Fibonacci sequence...")
+    print("=" * 50)
+    
+    for i in range(2, n):
+        # Calculate next term
+        next_term = sequence[-1] + sequence[-2]
+        
+        # Show calculation animation
+        print(f"Step {i-1}: {sequence[-2]} + {sequence[-1]} = {next_term}")
+        time.sleep(speed)
+        
+        sequence.append(next_term)
+    
+    return sequence
+
+def visualize_sequence(sequence):
+    """Visualize the Fibonacci sequence"""
+    print("\\n📊 Fibonacci Sequence Visualization:")
+    print("=" * 50)
+    
+    max_val = max(sequence) if sequence else 1
+    scale = 50 / max_val  # Scale for visualization
+    
+    for i, num in enumerate(sequence, 1):
+        bar = "█" * int(num * scale)
+        print(f"Term {i:2}: {num:8} {bar}")
+        time.sleep(0.1)
+
+def main():
+    print("🐇 Fibonacci Sequence Generator")
+    print("=" * 50)
+    
+    try:
+        n = int(input("How many terms? (1-30 recommended): "))
+        if n < 1 or n > 50:
+            print("⚠ Please enter a number between 1 and 50")
+            return
+        
+        speed = float(input("Animation speed (0.1=fast, 1.0=slow): ") or "0.3")
+        
+        # Generate sequence
+        fib = fibonacci_sequence(n, speed)
+        
+        print(f"\\n✅ Generated {n} Fibonacci numbers:")
+        for i, num in enumerate(fib, 1):
+            print(f"Term {i:2}: {num:10}")
+            if i % 10 == 0:
+                print()  # New line every 10 terms
+        
+        # Visualize
+        visualize_sequence(fib)
+        
+        # Calculate golden ratio approximation
+        if n >= 2:
+            ratio = fib[-1] / fib[-2] if fib[-2] != 0 else 0
+            print(f"\\n🌟 Golden ratio approximation: {ratio:.10f}")
+            print("   Actual golden ratio (φ): 1.618033988749895")
+            print(f"   Difference: {abs(ratio - 1.618033988749895):.10f}")
+        
+        # Statistics
+        print(f"\\n📈 Statistics:")
+        print(f"   Sum of sequence: {sum(fib):,}")
+        print(f"   Average: {sum(fib)/len(fib):.2f}")
+        print(f"   Maximum: {max(fib):,}")
+        print(f"   Minimum: {min(fib):,}")
+        
+        # Interesting facts
+        print(f"\\n💡 Did you know?")
+        if n >= 10:
+            print("   • Fibonacci numbers appear in nature (flower petals, pinecones)")
+            print("   • Each number is approximately 1.618 times the previous")
+            print("   • Used in computer algorithms and financial markets")
+        
+    except ValueError:
+        print("❌ Please enter a valid number!")
+    except KeyboardInterrupt:
+        print("\\n🛑 Generation stopped by user")
+
+if __name__ == "__main__":
+    main()`,
+
+            sorting: `# Sorting Algorithms Visualization
+import random
+import time
+import sys
+
+def bubble_sort(arr, visualize=True):
+    """Bubble sort implementation with visualization"""
+    n = len(arr)
+    comparisons = 0
+    swaps = 0
+    
+    if visualize:
+        print("🫧 Bubble Sort Visualization")
+        print("=" * 50)
+    
+    for i in range(n):
+        swapped = False
+        if visualize and i > 0:
+            print(f"\\nPass {i}: {arr}")
+        
+        for j in range(0, n-i-1):
+            comparisons += 1
+            
+            if visualize:
+                # Show comparison
+                visual_arr = arr.copy()
+                visual_arr[j] = f"[{arr[j]}]"
+                visual_arr[j+1] = f"({arr[j+1]})"
+                print(f"  Compare: {visual_arr}")
+            
+            if arr[j] > arr[j+1]:
+                # Swap elements
+                arr[j], arr[j+1] = arr[j+1], arr[j]
+                swaps += 1
+                swapped = True
+                
+                if visualize:
+                    print(f"  Swap!    {arr}")
+                    time.sleep(0.1)
+        
+        if not swapped:
+            break
+    
+    return arr, comparisons, swaps
+
+def generate_random_array(size=15, max_val=100):
+    """Generate random array with emoji indicators"""
+    arr = [random.randint(1, max_val) for _ in range(size)]
+    return arr
+
+def visualize_sorting_process(original, sorted_arr, algorithm, comparisons, swaps, time_taken):
+    """Visualize the sorting process results"""
+    print(f"\\n📊 {algorithm} Results:")
+    print("=" * 50)
+    print(f"Original: {original}")
+    print(f"Sorted:   {sorted_arr}")
+    print(f"\\n📈 Performance Metrics:")
+    print(f"   Comparisons: {comparisons}")
+    print(f"   Swaps: {swaps}")
+    print(f"   Time: {time_taken:.6f} seconds")
+    print(f"   Array size: {len(original)}")
+    
+    # Efficiency rating
+    efficiency = swaps / len(original) if len(original) > 0 else 0
+    if efficiency < 0.5:
+        rating = "⭐ Excellent"
+    elif efficiency < 1:
+        rating = "👍 Good"
+    elif efficiency < 2:
+        rating = "⚠ Average"
+    else:
+        rating = "🐌 Slow"
+    
+    print(f"   Efficiency: {rating}")
+
+def main():
+    print("🎯 Sorting Algorithms Comparison")
+    print("=" * 50)
+    
+    # Generate random array
+    size = 10
+    original = generate_random_array(size, 50)
+    print(f"Original array: {original}")
+    print("-" * 50)
+    
+    # Test Bubble Sort
+    print("\\n1. Bubble Sort Algorithm")
+    arr1 = original.copy()
+    start = time.time()
+    bubble_sorted, comparisons, swaps = bubble_sort(arr1, visualize=True)
+    bubble_time = time.time() - start
+    
+    visualize_sorting_process(original, bubble_sorted, "Bubble Sort", comparisons, swaps, bubble_time)
+    
+    # Python's built-in sort (Timsort)
+    print("\\n" + "=" * 50)
+    print("2. Python's Built-in Sort (Timsort)")
+    arr3 = original.copy()
+    start = time.time()
+    python_sorted = sorted(arr3)
+    python_time = time.time() - start
+    
+    print(f"\\n✅ Sorted instantly!")
+    print(f"Time: {python_time:.6f} seconds")
+    print(f"Result: {python_sorted}")
+    
+    # Comparison
+    print("\\n" + "=" * 50)
+    print("🏆 Algorithm Comparison:")
+    print(f"   Bubble Sort:    {bubble_time:.6f} seconds")
+    print(f"   Python Sort:    {python_time:.6f} seconds")
+    print(f"   Speed ratio:    {bubble_time/python_time:.1f}x slower")
+    
+    # Verification
+    print("\\n" + "=" * 50)
+    print("🔍 Verification:")
+    correct = bubble_sorted == python_sorted
+    print(f"   All sorts correct: {'✅ Yes' if correct else '❌ No'}")
+    
+    # Educational note
+    print("\\n💡 Educational Note:")
+    print("   • Bubble Sort: Simple but slow (O(n²))")
+    print("   • Python Sort: Very fast (O(n log n))")
+    print("   • Use built-in sort for real applications")
+
+if __name__ == "__main__":
+    main()`,
+
+            files: `# File Handling Examples with Error Recovery
+import os
+import json
+import time
+
+def create_animated_message(message, delay=0.05):
+    """Create animated console message"""
+    print("\\n" + "=" * 50)
+    for char in message:
+        print(char, end='', flush=True)
+        time.sleep(delay)
+    print("\\n" + "=" * 50)
+
+def file_operations_demo():
+    create_animated_message("📁 File Handling Demonstration")
+    
+    # Create a sample text file
+    filename = "sample_data.txt"
+    
+    try:
+        # Write to file with progress
+        print(f"\\n1. 📝 Writing to {filename}...")
+        with open(filename, 'w') as file:
+            lines = [
+                "Python File Handling Demo\\n",
+                "=" * 40 + "\\n",
+                "📅 Created: " + time.strftime("%Y-%m-%d %H:%M:%S") + "\\n",
+                "🔧 Author: Python Code Editor\\n",
+                "=" * 40 + "\\n",
+                "Line 1: Hello from Python! 👋\\n",
+                "Line 2: File operations made easy! 📚\\n",
+                "Line 3: Read, write, and manipulate files 💾\\n",
+                "Line 4: Python is awesome! 🐍\\n"
+            ]
+            
+            for i, line in enumerate(lines, 1):
+                file.write(line)
+                print(f"   Writing line {i}/{len(lines)}...")
+                time.sleep(0.1)
+        
+        print(f"   ✅ File '{filename}' created successfully")
+        
+        # Read entire file with animation
+        print(f"\\n2. 📖 Reading entire file:")
+        with open(filename, 'r') as file:
+            content = file.read()
+            print("\\n" + "-" * 40)
+            for line in content.split('\\n'):
+                if line.strip():
+                    print(f"   {line}")
+                    time.sleep(0.05)
+            print("-" * 40)
+        
+        # Read line by line with numbering
+        print(f"\\n3. 🔢 Reading line by line:")
+        with open(filename, 'r') as file:
+            for i, line in enumerate(file, 1):
+                line = line.strip()
+                if line:  # Skip empty lines
+                    print(f"   Line {i:2}: {line}")
+                    time.sleep(0.05)
+        
+        # Append to file
+        print(f"\\n4. 📎 Appending to file...")
+        with open(filename, 'a') as file:
+            new_lines = [
+                "\\n" + "=" * 40 + "\\n",
+                "📝 Additional Content:\\n",
+                f"Appended at: {time.strftime('%H:%M:%S')}\\n",
+                "This content was added later! 🎉\\n"
+            ]
+            file.writelines(new_lines)
+        print("   ✅ Content appended successfully")
+        
+        # File information with emojis
+        print(f"\\n5. 📊 File Information:")
+        if os.path.exists(filename):
+            stats = os.stat(filename)
+            print(f"   📍 File exists: ✅ Yes")
+            print(f"   📏 File size: {stats.st_size} bytes")
+            print(f"   🕐 Created: {time.ctime(stats.st_ctime)}")
+            print(f"   ✏️ Modified: {time.ctime(stats.st_mtime)}")
+        
+        # JSON file example
+        print(f"\\n6. 📋 JSON File Example:")
+        data = {
+            "project": "Python Code Editor",
+            "author": "Python Developer",
+            "skills": ["Python", "JavaScript", "HTML/CSS", "SQL"],
+            "experience": {
+                "python": 3,
+                "web": 2,
+                "databases": 2
+            },
+            "features": ["Code Execution", "File Handling", "Debug Tools", "Examples"],
+            "rating": "⭐⭐⭐⭐⭐",
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        json_filename = "project_data.json"
+        with open(json_filename, 'w') as json_file:
+            json.dump(data, json_file, indent=2, sort_keys=True)
+        
+        print(f"   ✅ JSON file '{json_filename}' created")
+        
+        # Read and display JSON
+        print(f"\\n7. 👁️ JSON Content Preview:")
+        with open(json_filename, 'r') as json_file:
+            loaded_data = json.load(json_file)
+            print(f"   Project: {loaded_data['project']}")
+            print(f"   Author: {loaded_data['author']}")
+            print(f"   Skills: {', '.join(loaded_data['skills'])}")
+            print(f"   Rating: {loaded_data['rating']}")
+        
+        # Cleanup demonstration
+        print(f"\\n8. 🧹 Cleanup Demonstration:")
+        choice = input("   Delete created files? (y/n): ").lower()
+        
+        if choice == 'y':
+            # Delete files with confirmation
+            files_to_delete = [filename, json_filename]
+            for file in files_to_delete:
+                if os.path.exists(file):
+                    os.remove(file)
+                    print(f"   ✅ Deleted: {file}")
+                else:
+                    print(f"   ⚠ Not found: {file}")
+            
+            print("\\n🎉 All files cleaned up successfully!")
+        else:
+            print("\\n📁 Files preserved for inspection")
+            print(f"   Text file: {filename}")
+            print(f"   JSON file: {json_filename}")
+            
+    except Exception as e:
+        print(f"\\n❌ Error occurred: {e}")
+        print("💡 Tip: Some file operations may not work in browser environment")
+    finally:
+        print("\\n" + "=" * 50)
+        print("🏁 File handling demonstration completed!")
+
+if __name__ == "__main__":
+    file_operations_demo()`,
+
+            oop: `# Object-Oriented Programming with Animation
+import time
+
+class AnimatedObject:
+    """Base class with animation capabilities"""
+    def __init__(self, name):
+        self.name = name
+        self.created_at = time.time()
+    
+    def animate(self, message):
+        """Display animated message"""
+        print(f"\\n🎬 {self.name}: ", end='')
+        for char in message:
+            print(char, end='', flush=True)
+            time.sleep(0.05)
+        print()
+
+class Person(AnimatedObject):
+    """Person class with animation"""
+    def __init__(self, name, age, occupation):
+        super().__init__(name)
+        self.age = age
+        self.occupation = occupation
+        self.skills = []
+    
+    def introduce(self):
+        self.animate(f"Hello! I'm {self.name}, {self.age} years old.")
+        self.animate(f"I work as a {self.occupation}.")
+        if self.skills:
+            self.animate(f"My skills include: {', '.join(self.skills)}")
+        return f"Person: {self.name}"
+    
+    def learn_skill(self, skill):
+        self.animate(f"Learning {skill}...")
+        time.sleep(0.5)
+        self.skills.append(skill)
+        self.animate(f"✅ Learned {skill}!")
+
+class Student(Person):
+    """Student class with special features"""
+    def __init__(self, name, age, student_id, major):
+        super().__init__(name, age, "Student")
+        self.student_id = student_id
+        self.major = major
+        self.courses = []
+        self.grades = {}
+    
+    def introduce(self):
+        self.animate(f"🎓 I'm {self.name}, a {self.major} student.")
+        self.animate(f"📚 Student ID: {self.student_id}")
+        return f"Student: {self.name} ({self.major})"
+    
+    def enroll(self, course, grade=None):
+        self.animate(f"Enrolling in {course}...")
+        time.sleep(0.3)
+        self.courses.append(course)
+        if grade:
+            self.grades[course] = grade
+        self.animate(f"✅ Successfully enrolled in {course}!")
+    
+    def show_grades(self):
+        if not self.grades:
+            self.animate("No grades recorded yet.")
+            return
+        
+        self.animate("📊 My Grades:")
+        for course, grade in self.grades.items():
+            print(f"   {course}: {grade}")
+
+class Course:
+    """Course class"""
+    def __init__(self, code, name, credits, difficulty="Medium"):
+        self.code = code
+        self.name = name
+        self.credits = credits
+        self.difficulty = difficulty
+        self.students = []
+    
+    def __str__(self):
+        return f"{self.code}: {self.name} ({self.credits} credits, {self.difficulty})"
+    
+    def add_student(self, student):
+        self.students.append(student)
+        print(f"👤 {student.name} added to {self.code}")
+
+def animate_title(title):
+    """Animate title display"""
+    print("\\n" + "=" * 60)
+    for char in title:
+        print(char, end='', flush=True)
+        time.sleep(0.03)
+    print("\\n" + "=" * 60)
+
+def main():
+    animate_title("🏛️ Object-Oriented Programming Demo")
+    
+    # Create persons with animation
+    print("\\n1. Creating Person Objects...")
+    time.sleep(0.5)
+    
+    person1 = Person("Alice", 30, "Software Engineer")
+    person1.learn_skill("Python")
+    person1.learn_skill("JavaScript")
+    person1.introduce()
+    
+    person2 = Person("Bob", 25, "Data Scientist")
+    person2.learn_skill("Machine Learning")
+    person2.learn_skill("Statistics")
+    person2.introduce()
+    
+    # Create students
+    print("\\n2. Creating Student Objects...")
+    time.sleep(0.5)
+    
+    student1 = Student("Charlie", 20, "S001", "Computer Science")
+    student1.learn_skill("Algorithms")
+    student1.learn_skill("Data Structures")
+    student1.introduce()
+    
+    student2 = Student("Diana", 22, "S002", "Mathematics")
+    student2.learn_skill("Calculus")
+    student2.learn_skill("Linear Algebra")
+    student2.introduce()
+    
+    # Create courses
+    print("\\n3. Creating Course Objects...")
+    time.sleep(0.5)
+    
+    courses = [
+        Course("CS101", "Introduction to Programming", 3, "Beginner"),
+        Course("CS201", "Data Structures", 4, "Intermediate"),
+        Course("CS301", "Algorithms", 4, "Advanced"),
+        Course("MATH101", "Calculus I", 4, "Intermediate"),
+        Course("PHYS101", "Physics I", 4, "Intermediate")
+    ]
+    
+    print("\\n📚 Available Courses:")
+    for course in courses:
+        print(f"   • {course}")
+        time.sleep(0.1)
+    
+    # Enrollment process
+    print("\\n4. Enrollment Process...")
+    time.sleep(0.5)
+    
+    student1.enroll(courses[0], "A")
+    student1.enroll(courses[1], "B+")
+    student2.enroll(courses[3], "A-")
+    student2.enroll(courses[4], "B")
+    
+    # Show student information
+    print("\\n5. Student Information:")
+    print("\\n👨‍🎓 Charlie's Profile:")
+    print(f"   Major: {student1.major}")
+    print(f"   Courses: {', '.join([c.code for c in student1.courses])}")
+    student1.show_grades()
+    
+    print("\\n👩‍🎓 Diana's Profile:")
+    print(f"   Major: {student2.major}")
+    print(f"   Courses: {', '.join([c.code for c in student2.courses])}")
+    student2.show_grades()
+    
+    # Polymorphism demonstration
+    print("\\n6. Polymorphism Demonstration:")
+    people = [person1, person2, student1, student2]
+    
+    for person in people:
+        print(f"\\n💬 {person.introduce()}")
+        time.sleep(0.5)
+    
+    # Inheritance hierarchy
+    print("\\n7. Class Hierarchy:")
+    print("   " + "═" * 40)
+    print("   AnimatedObject (Base Class)")
+    print("   ├── Person")
+    print("   │   └── Student")
+    print("   └── Course")
+    print("   " + "═" * 40)
+    
+    # Summary
+    print("\\n8. Summary:")
+    total_people = len(people)
+    total_courses = len(courses)
+    total_skills = sum(len(p.skills) for p in people)
+    
+    print(f"   👥 Total People: {total_people}")
+    print(f"   📚 Total Courses: {total_courses}")
+    print(f"   🛠️ Total Skills: {total_skills}")
+    print(f"   🎯 Students: {len([p for p in people if isinstance(p, Student)])}")
+    
+    print("\\n" + "=" * 60)
+    print("🎉 OOP Demonstration Completed Successfully!")
+    print("=" * 60)
+
+if __name__ == "__main__":
+    main()`
+        };
+
+        // Load example code with animation
+        document.querySelectorAll('.example-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const example = btn.dataset.example;
+                if (examples[example]) {
+                    // Add click animation
+                    btn.classList.add('pulse-animation');
+                    setTimeout(() => {
+                        btn.classList.remove('pulse-animation');
+                    }, 500);
+                    
+                    editor.setValue(examples[example]);
+                    addOutput('success', `✨ Loaded ${btn.querySelector('h4').textContent} example`);
+                    editor.focus();
+                    updateDebugInfo();
+                }
+            });
+        });
+
+        // Save, Load, Share buttons with animations
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            const code = editor.getValue();
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'python_code.py';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            addOutput('success', '💾 Code saved as python_code.py');
+            
+            // Button animation
+            document.getElementById('saveBtn').classList.add('pulse-animation');
+            setTimeout(() => {
+                document.getElementById('saveBtn').classList.remove('pulse-animation');
+            }, 500);
+        });
+
+        document.getElementById('loadBtn').addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.py,.txt';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    editor.setValue(e.target.result);
+                    addOutput('success', `📂 Loaded ${file.name}`);
+                    updateDebugInfo();
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        });
+
+        document.getElementById('shareBtn').addEventListener('click', () => {
+            const code = editor.getValue();
+            const encoded = btoa(encodeURIComponent(code));
+            const shareUrl = `${window.location.origin}${window.location.pathname}#${encoded}`;
+            
+            // Button animation
+            document.getElementById('shareBtn').classList.add('pulse-animation');
+            setTimeout(() => {
+                document.getElementById('shareBtn').classList.remove('pulse-animation');
+            }, 500);
+            
+            // Copy to clipboard
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    addOutput('success', '🔗 Share link copied to clipboard!');
+                }).catch(() => {
+                    fallbackCopy(shareUrl);
+                });
+            } else {
+                fallbackCopy(shareUrl);
+            }
+            
+            function fallbackCopy(text) {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                addOutput('success', '🔗 Share link copied to clipboard!');
+            }
+        });
+
+        // Logo animation
+        document.getElementById('logo').addEventListener('click', () => {
+            addOutput('info', '🐍 Welcome to Python Code Editor!');
+            showSnakeAnimation();
+        });
+
+        // Helper function to add output with auto-clear
+        function addOutput(type, message) {
+            const output = document.getElementById('output');
+            const line = document.createElement('div');
+            line.className = `output-line ${type}`;
+            
+            const iconMap = {
+                'info': 'fas fa-info-circle',
+                'success': 'fas fa-check-circle',
+                'error': 'fas fa-exclamation-circle',
+                'warning': 'fas fa-exclamation-triangle',
+                'output': 'fas fa-angle-right',
+                'debug': 'fas fa-bug'
+            };
+            
+            line.innerHTML = `<i class="${iconMap[type] || 'fas fa-angle-right'}"></i> ${message}`;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+            
+            // Auto-clear old messages if too many
+            const lines = output.getElementsByClassName('output-line');
+            if (lines.length > 100) {
+                for (let i = 0; i < 20; i++) {
+                    if (lines[0]) lines[0].remove();
+                }
+            }
+        }
+
+        // Handle hash-based code loading
+        window.addEventListener('load', () => {
+            if (window.location.hash) {
+                try {
+                    const code = decodeURIComponent(atob(window.location.hash.substring(1)));
+                    editor.setValue(code);
+                    addOutput('info', '🔗 Code loaded from URL');
+                    updateDebugInfo();
+                } catch (e) {
+                    addOutput('error', '❌ Invalid code in URL');
+                }
+            }
+            
+            // Add initial animations
+            setTimeout(() => {
+                addOutput('success', '🚀 Editor ready! Start coding...');
+            }, 1000);
+        });
+
+        // Handle Ctrl+Enter to run code
+        editor.on('keydown', (cm, event) => {
+            if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                event.preventDefault();
+                document.getElementById('runBtn').click();
+            }
+        });
+
+        // Auto-focus editor and update debug info
+        editor.focus();
+        setInterval(updateDebugInfo, 5000); // Update debug info every 5 seconds
+        
+        // Close modals when clicking outside
+        window.addEventListener('click', (event) => {
+            if (event.target === aboutModal) {
+                aboutModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+            if (event.target === debugModal) {
+                debugModal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        });
+
+        // Initialize debug info
+        updateDebugInfo();
+        
+        // Add welcome animation
+        setTimeout(() => {
+            document.querySelector('.logo i').style.animation = 'pulse 2s infinite';
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,4671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java Code Editor & Runner</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/eclipse.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --java-red: #e76f00;
+            --java-dark: #007396;
+            --java-blue: #5382a1;
+            --java-light: #f89820;
+            --success: #28a745;
+            --error: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --border-radius: 8px;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            transition: var(--transition);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body.dark-mode {
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--java-dark), var(--java-blue));
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(45deg, var(--java-red), var(--java-light));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .logo .tagline {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-top: 3px;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+            font-weight: 500;
+            min-width: 130px;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: 0.5s;
+        }
+
+        .control-btn:hover::before {
+            left: 100%;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .control-btn i {
+            font-size: 1rem;
+        }
+
+        .run-btn {
+            background: linear-gradient(135deg, var(--success), #20c997);
+        }
+
+        .compile-btn {
+            background: linear-gradient(135deg, var(--java-blue), #5382a1);
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, var(--warning), #ff922b);
+        }
+
+        .save-btn {
+            background: linear-gradient(135deg, var(--info), #339af0);
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            position: relative;
+            width: 60px;
+            height: 30px;
+        }
+
+        .theme-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 34px;
+            transition: var(--transition);
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            border-radius: 50%;
+            transition: var(--transition);
+        }
+
+        input:checked + .toggle-slider {
+            background-color: var(--java-red);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(30px);
+        }
+
+        /* Main Container */
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+            gap: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* Editor Section */
+        .editor-section {
+            flex: 3;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--java-red);
+        }
+
+        body.dark-mode .editor-header {
+            background: #2d2d2d;
+        }
+
+        .editor-header h2 {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--java-red);
+        }
+
+        .editor-header h2 i {
+            color: var(--java-light);
+        }
+
+        .editor-tools {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .tool-btn {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+
+        body.dark-mode .tool-btn {
+            background: #3a3a3a;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+
+        .tool-btn:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        body.dark-mode .tool-btn:hover {
+            background: #4a4a4a;
+        }
+
+        .editor-container {
+            flex: 1;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            min-height: 500px;
+        }
+
+        .CodeMirror {
+            height: 100% !important;
+            font-size: 14px;
+            line-height: 1.6;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+
+        /* Output Section */
+        .output-section {
+            flex: 2;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--success);
+        }
+
+        body.dark-mode .output-header {
+            background: #2d2d2d;
+        }
+
+        .output-header h2 {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--success);
+        }
+
+        .output-header h2 i {
+            color: #20c997;
+        }
+
+        .status-indicator {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-width: 160px;
+            justify-content: center;
+        }
+
+        .status-idle {
+            background: rgba(108, 117, 125, 0.2);
+            color: #6c757d;
+        }
+
+        .status-compiling {
+            background: rgba(13, 110, 253, 0.2);
+            color: #0d6efd;
+        }
+
+        .status-running {
+            background: rgba(231, 111, 0, 0.2);
+            color: var(--java-red);
+        }
+
+        .status-success {
+            background: rgba(40, 167, 69, 0.2);
+            color: #28a745;
+        }
+
+        .status-error {
+            background: rgba(220, 53, 69, 0.2);
+            color: #dc3545;
+        }
+
+        .output-container {
+            flex: 1;
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 0;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+        }
+
+        body.dark-mode .output-container {
+            background: #2d2d2d;
+        }
+
+        .output-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        body.dark-mode .output-tabs {
+            background: #3a3a3a;
+            border-bottom-color: #555;
+        }
+
+        .tab-btn {
+            padding: 12px 20px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #6c757d;
+            transition: var(--transition);
+            border-bottom: 3px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.dark-mode .tab-btn {
+            color: #aaa;
+        }
+
+        .tab-btn.active {
+            color: var(--java-red);
+            border-bottom-color: var(--java-red);
+            background: rgba(231, 111, 0, 0.1);
+        }
+
+        body.dark-mode .tab-btn.active {
+            background: rgba(231, 111, 0, 0.2);
+        }
+
+        .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        #consoleOutput {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+
+        #debugOutput {
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+
+        body.dark-mode #debugOutput {
+            background: #252525;
+        }
+
+        .output-line {
+            margin-bottom: 8px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            animation: fadeIn 0.3s ease;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .output-line.info {
+            background: rgba(23, 162, 184, 0.1);
+            color: var(--info);
+            border-left: 3px solid var(--info);
+        }
+
+        .output-line.success {
+            background: rgba(40, 167, 69, 0.1);
+            color: var(--success);
+            border-left: 3px solid var(--success);
+        }
+
+        .output-line.error {
+            background: rgba(220, 53, 69, 0.1);
+            color: var(--error);
+            border-left: 3px solid var(--error);
+        }
+
+        .output-line.warning {
+            background: rgba(255, 193, 7, 0.1);
+            color: var(--warning);
+            border-left: 3px solid var(--warning);
+        }
+
+        .output-line.output {
+            color: #333;
+            border-left: 3px solid #6c757d;
+        }
+
+        body.dark-mode .output-line.output {
+            color: #e0e0e0;
+        }
+
+        /* Examples Panel */
+        .examples-panel {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+            margin-top: 20px;
+        }
+
+        body.dark-mode .examples-panel {
+            background: #2d2d2d;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .panel-header h3 {
+            color: var(--java-red);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.3rem;
+        }
+
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .example-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body.dark-mode .example-card {
+            background: #3a3a3a;
+            border-color: #555;
+        }
+
+        .example-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--java-red), var(--java-light));
+            transition: var(--transition);
+        }
+
+        .example-card:hover {
+            border-color: var(--java-blue);
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .example-card.active {
+            border-color: var(--java-red);
+            background: rgba(231, 111, 0, 0.05);
+        }
+
+        body.dark-mode .example-card.active {
+            background: rgba(231, 111, 0, 0.1);
+        }
+
+        .example-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--java-red), var(--java-light));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+
+        .example-card h4 {
+            color: var(--java-red);
+            font-size: 1.2rem;
+            margin: 5px 0;
+        }
+
+        .example-card p {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            flex-grow: 1;
+        }
+
+        body.dark-mode .example-card p {
+            color: #aaa;
+        }
+
+        .example-tags {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .tag {
+            padding: 4px 10px;
+            background: #e9ecef;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            color: #495057;
+            font-weight: 500;
+        }
+
+        body.dark-mode .tag {
+            background: #4a4a4a;
+            color: #ccc;
+        }
+
+        .tag.beginner {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .tag.intermediate {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .tag.advanced {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 25px;
+            background: white;
+            color: #666;
+            font-size: 0.9rem;
+            border-top: 1px solid #eee;
+            margin-top: 40px;
+        }
+
+        body.dark-mode .footer {
+            background: #2d2d2d;
+            border-top-color: #444;
+            color: #aaa;
+        }
+
+        .footer-content {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .footer-icons {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin: 15px 0;
+        }
+
+        .footer-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--java-blue), var(--java-dark));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            transition: var(--transition);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .footer-icon:hover {
+            transform: translateY(-3px) rotate(5deg);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .java-version {
+            background: linear-gradient(135deg, var(--java-red), var(--java-light));
+            padding: 8px 20px;
+            border-radius: 20px;
+            color: white;
+            display: inline-block;
+            font-weight: 600;
+            margin: 10px auto;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .editor-section, .output-section {
+                min-width: 100%;
+            }
+            
+            .examples-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                padding: 1rem;
+            }
+            
+            .controls {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .control-group {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .control-btn {
+                min-width: 110px;
+                padding: 8px 15px;
+                font-size: 0.9rem;
+            }
+            
+            .editor-header, .output-header {
+                flex-direction: column;
+                gap: 10px;
+                text-align: center;
+            }
+            
+            .editor-tools {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .examples-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .logo {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+        }
+
+        /* Loading Animation */
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--java-red);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(to bottom, var(--java-red), var(--java-light));
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(to bottom, var(--java-dark), var(--java-blue));
+        }
+
+        body.dark-mode ::-webkit-scrollbar-track {
+            background: #2d2d2d;
+        }
+
+        body.dark-mode ::-webkit-scrollbar-thumb {
+            background: #555;
+        }
+
+        /* Code Statistics */
+        .code-stats {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .stat {
+            padding: 5px 10px;
+            background: #e9ecef;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        body.dark-mode .stat {
+            background: #3a3a3a;
+            color: #ccc;
+        }
+
+        /* Compilation Animation */
+        .compilation-animation {
+            position: relative;
+            height: 4px;
+            background: #e9ecef;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .compilation-progress {
+            position: absolute;
+            height: 100%;
+            background: linear-gradient(to right, var(--java-blue), var(--java-red));
+            border-radius: 2px;
+            animation: compileProgress 2s infinite;
+        }
+
+        @keyframes compileProgress {
+            0% { left: -100%; width: 30%; }
+            50% { width: 50%; }
+            100% { left: 100%; width: 30%; }
+        }
+
+        /* Java Specific Styling */
+        .java-keyword {
+            color: #e76f00;
+            font-weight: bold;
+        }
+
+        .java-string {
+            color: #22863a;
+        }
+
+        .java-comment {
+            color: #6a737d;
+        }
+
+        /* Console Styling */
+        .console-input {
+            background: #1e1e1e;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Consolas', monospace;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .console-prompt {
+            color: #4ec9b0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">
+                <i class="fab fa-java"></i>
+            </div>
+            <div class="logo-text">
+                <h1>Java Code Editor</h1>
+                <div class="tagline">Write, Compile & Run Java Programs Online</div>
+            </div>
+        </div>
+        <div class="controls">
+            <div class="control-group">
+                <button class="control-btn compile-btn" id="compileBtn">
+                    <i class="fas fa-cogs"></i> Compile
+                </button>
+                <button class="control-btn run-btn" id="runBtn">
+                    <i class="fas fa-play"></i> Run Program
+                </button>
+                <button class="control-btn clear-btn" id="clearBtn">
+                    <i class="fas fa-broom"></i> Clear
+                </button>
+                <button class="control-btn save-btn" id="saveBtn">
+                    <i class="fas fa-save"></i> Save
+                </button>
+            </div>
+            <div class="theme-toggle">
+                <input type="checkbox" id="themeToggle">
+                <label class="toggle-slider" for="themeToggle"></label>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Editor Section -->
+        <section class="editor-section">
+            <div class="editor-header">
+                <h2><i class="fas fa-code"></i> Java Editor</h2>
+                <div class="editor-tools">
+                    <button class="tool-btn" id="formatBtn">
+                        <i class="fas fa-indent"></i> Format
+                    </button>
+                    <button class="tool-btn" id="fontIncrease">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <button class="tool-btn" id="fontDecrease">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <button class="tool-btn" id="beautifyBtn">
+                        <i class="fas fa-magic"></i> Beautify
+                    </button>
+                    <button class="tool-btn" id="importsBtn">
+                        <i class="fas fa-file-import"></i> Imports
+                    </button>
+                </div>
+            </div>
+            <div class="editor-container">
+                <textarea id="codeEditor"></textarea>
+            </div>
+            
+            <!-- Examples Panel -->
+            <div class="examples-panel">
+                <div class="panel-header">
+                    <h3><i class="fas fa-lightbulb"></i> Java Code Examples</h3>
+                    <div class="status-indicator status-idle" id="statusIndicator">
+                        <i class="fas fa-circle"></i> Ready
+                    </div>
+                </div>
+                <div class="examples-grid" id="examplesGrid">
+                    <!-- Examples will be loaded via JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Output Section -->
+        <section class="output-section">
+            <div class="output-header">
+                <h2><i class="fas fa-terminal"></i> Output Console</h2>
+                <div class="status-indicator status-idle" id="executionStatus">
+                    <i class="fas fa-circle"></i> Ready to Compile
+                </div>
+            </div>
+            <div class="output-container">
+                <div class="output-tabs">
+                    <button class="tab-btn active" data-tab="console">Console</button>
+                    <button class="tab-btn" data-tab="debug">Debug</button>
+                    <button class="tab-btn" data-tab="errors">Errors</button>
+                    <button class="tab-btn" data-tab="about">About Java</button>
+                </div>
+                <div class="tab-content">
+                    <div id="consoleOutput" class="tab-pane active">
+                        <div class="output-line info">
+                            <i class="fas fa-info-circle"></i> Welcome to Java Online Editor!
+                        </div>
+                        <div class="output-line info">
+                            <i class="fas fa-info-circle"></i> Write your Java code and click "Compile" then "Run Program"
+                        </div>
+                        <div class="output-line success">
+                            <i class="fas fa-check-circle"></i> Supports Java 8+ features
+                        </div>
+                        <div class="output-line info">
+                            <i class="fas fa-info-circle"></i> All examples include proper error handling
+                        </div>
+                    </div>
+                    <div id="debugOutput" class="tab-pane" style="display: none;">
+                        <!-- Debug output will be displayed here -->
+                    </div>
+                    <div id="errorsTab" class="tab-pane" style="display: none;">
+                        <!-- Errors will be displayed here -->
+                    </div>
+                    <div id="aboutTab" class="tab-pane" style="display: none;">
+                        <!-- About Java information -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-icons">
+                <div class="footer-icon">
+                    <i class="fab fa-java"></i>
+                </div>
+                <div class="footer-icon">
+                    <i class="fas fa-cogs"></i>
+                </div>
+                <div class="footer-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="footer-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="footer-icon">
+                    <i class="fas fa-code"></i>
+                </div>
+            </div>
+            <div class="java-version">Java 17 LTS Supported</div>
+            <p>
+                <i class="fas fa-code"></i> Java Online Editor | 
+                <i class="fas fa-shield-alt"></i> Secure Compilation | 
+                <i class="fas fa-bolt"></i> Real-time Execution
+            </p>
+            <p style="margin-top: 10px; font-size: 0.85rem; color: #888;">
+                Note: This editor simulates Java compilation and execution. Complex operations may have time limits.
+            </p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/comment/comment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/anyword-hint.min.js"></script>
+    
+    <script>
+        // Initialize CodeMirror Editor for Java
+        const editor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+            mode: 'text/x-java',
+            theme: 'eclipse',
+            lineNumbers: true,
+            indentUnit: 4,
+            smartIndent: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            extraKeys: {
+                'Ctrl-Space': 'autocomplete',
+                'Ctrl-/': function(cm) {
+                    cm.toggleComment({lineComment: '//', blockComment: '/* */'});
+                },
+                'Tab': function(cm) {
+                    cm.replaceSelection('    ', 'end');
+                }
+            },
+            hintOptions: {
+                hint: CodeMirror.hint.anyword,
+                completeSingle: false
+            }
+        });
+
+        // Set initial Java code
+        editor.setValue(`// Welcome to Java Online Editor!
+// This is a sample Java program
+// Click "Compile" then "Run Program" to execute it
+
+import java.util.Scanner;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashMap;
+
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("=== Java Online Code Editor ===");
+        System.out.println("Write and execute Java code directly in your browser!");
+        System.out.println("================================\n");
+        
+        // Basic Java Syntax Examples
+        System.out.println("Basic Java Examples:");
+        System.out.println("--------------------");
+        
+        // Variables and Data Types
+        String name = "Java Developer";
+        int age = 25;
+        double salary = 75000.50;
+        boolean isActive = true;
+        char grade = 'A';
+        
+        System.out.println("Name: " + name);
+        System.out.println("Age: " + age + " years");
+        System.out.printf("Salary: $%.2f%n", salary);
+        System.out.println("Active: " + (isActive ? "Yes" : "No"));
+        System.out.println("Grade: " + grade);
+        
+        // Arrays
+        String[] languages = {"Java", "JavaScript", "Python", "C++"};
+        System.out.println("\\nLanguages: " + Arrays.toString(languages));
+        
+        // Functions/Methods
+        System.out.println("\\nFunction Examples:");
+        System.out.println("Sum of 10 and 20: " + calculateSum(10, 20));
+        System.out.println("Is 15 even? " + (isEven(15) ? "Yes" : "No"));
+        
+        // Control Structures
+        System.out.println("\\nControl Structures:");
+        int score = 85;
+        System.out.print("Score: " + score + " - ");
+        if (score >= 90) {
+            System.out.println("Grade: A");
+        } else if (score >= 80) {
+            System.out.println("Grade: B");
+        } else if (score >= 70) {
+            System.out.println("Grade: C");
+        } else {
+            System.out.println("Grade: D");
+        }
+        
+        // Loops
+        System.out.print("\\nNumbers 1-10: ");
+        for (int i = 1; i <= 10; i++) {
+            System.out.print(i + " ");
+        }
+        System.out.println();
+        
+        // While loop
+        System.out.print("Even numbers (while): ");
+        int num = 2;
+        while (num <= 10) {
+            System.out.print(num + " ");
+            num += 2;
+        }
+        System.out.println();
+        
+        // Collections
+        System.out.println("\\nCollection Examples:");
+        
+        // ArrayList
+        ArrayList<String> fruits = new ArrayList<>();
+        fruits.add("Apple");
+        fruits.add("Banana");
+        fruits.add("Orange");
+        fruits.add("Mango");
+        System.out.println("Fruits: " + fruits);
+        
+        // HashMap
+        HashMap<String, Integer> studentGrades = new HashMap<>();
+        studentGrades.put("Alice", 95);
+        studentGrades.put("Bob", 88);
+        studentGrades.put("Charlie", 92);
+        System.out.println("Student Grades: " + studentGrades);
+        
+        // Object-Oriented Programming
+        System.out.println("\\nObject-Oriented Programming:");
+        Person person1 = new Person("John Doe", 30);
+        System.out.println(person1.introduce());
+        
+        Student student1 = new Student("Jane Smith", 20, "S001", "Computer Science");
+        System.out.println(student1.introduce());
+        
+        // Exception Handling
+        System.out.println("\\nException Handling Example:");
+        try {
+            int result = divide(10, 0);
+            System.out.println("Result: " + result);
+        } catch (ArithmeticException e) {
+            System.out.println("Error: " + e.getMessage());
+            System.out.println("Cannot divide by zero!");
+        }
+        
+        // Current Date and Time
+        System.out.println("\\nDate and Time:");
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        System.out.println("Current Date: " + now.toLocalDate());
+        System.out.println("Current Time: " + now.toLocalTime());
+        System.out.println("Day of Week: " + now.getDayOfWeek());
+        
+        System.out.println("\\n=========================================");
+        System.out.println("✓ Program executed successfully!");
+        System.out.println("Try modifying the code or load an example.");
+        System.out.println("=========================================");
+    }
+    
+    // Static methods
+    public static int calculateSum(int a, int b) {
+        return a + b;
+    }
+    
+    public static boolean isEven(int number) {
+        return number % 2 == 0;
+    }
+    
+    public static int divide(int a, int b) {
+        if (b == 0) {
+            throw new ArithmeticException("Division by zero");
+        }
+        return a / b;
+    }
+}
+
+// Person class
+class Person {
+    private String name;
+    private int age;
+    
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public int getAge() {
+        return age;
+    }
+    
+    public String introduce() {
+        return "Hello, I'm " + name + ", " + age + " years old.";
+    }
+}
+
+// Student class (inherits from Person)
+class Student extends Person {
+    private String studentId;
+    private String major;
+    
+    public Student(String name, int age, String studentId, String major) {
+        super(name, age);
+        this.studentId = studentId;
+        this.major = major;
+    }
+    
+    @Override
+    public String introduce() {
+        return super.introduce() + " I'm a " + major + " student (ID: " + studentId + ").";
+    }
+    
+    public String getStudentId() {
+        return studentId;
+    }
+    
+    public String getMajor() {
+        return major;
+    }
+}`);
+
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+        
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem('javaEditorTheme');
+        if (savedTheme === 'dark') {
+            body.classList.add('dark-mode');
+            themeToggle.checked = true;
+            editor.setOption('theme', 'dracula');
+        }
+        
+        themeToggle.addEventListener('change', () => {
+            body.classList.toggle('dark-mode');
+            if (body.classList.contains('dark-mode')) {
+                editor.setOption('theme', 'dracula');
+                localStorage.setItem('javaEditorTheme', 'dark');
+            } else {
+                editor.setOption('theme', 'eclipse');
+                localStorage.setItem('javaEditorTheme', 'light');
+            }
+        });
+
+        // Tab Switching
+        document.querySelectorAll('.tab-btn').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs
+                document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+                // Hide all tab contents
+                document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+                
+                // Activate clicked tab
+                tab.classList.add('active');
+                const tabId = tab.dataset.tab + (tab.dataset.tab === 'console' ? 'Output' : 
+                               tab.dataset.tab === 'debug' ? 'Output' : 
+                               tab.dataset.tab === 'errors' ? 'Tab' : 'Tab');
+                document.getElementById(tabId).style.display = 'block';
+            });
+        });
+
+        // Initialize About tab
+        document.getElementById('aboutTab').innerHTML = `
+            <div style="padding: 20px;">
+                <h3 style="color: var(--java-red); margin-bottom: 15px;">About Java</h3>
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h4><i class="fas fa-history"></i> History</h4>
+                    <p>Java was created by James Gosling at Sun Microsystems in 1995. It was designed to be platform-independent with the motto "Write Once, Run Anywhere".</p>
+                </div>
+                <div style="background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h4><i class="fas fa-star"></i> Key Features</h4>
+                    <ul style="padding-left: 20px;">
+                        <li>Object-Oriented</li>
+                        <li>Platform Independent (JVM)</li>
+                        <li>Robust and Secure</li>
+                        <li>Multi-threading support</li>
+                        <li>Automatic Memory Management (Garbage Collection)</li>
+                    </ul>
+                </div>
+                <div style="background: #fff3cd; padding: 15px; border-radius: 8px;">
+                    <h4><i class="fas fa-cogs"></i> Common Uses</h4>
+                    <p>• Enterprise Applications<br>
+                       • Android Development<br>
+                       • Web Applications<br>
+                       • Big Data Technologies<br>
+                       • Scientific Applications</p>
+                </div>
+            </div>
+        `;
+
+        // Examples Data
+        const examples = [
+            {
+                id: 'basics',
+                title: 'Java Basics',
+                description: 'Variables, loops, conditionals, and basic syntax',
+                icon: 'fas fa-code',
+                tags: ['beginner', 'syntax', 'basics'],
+                level: 'beginner',
+                code: `// Java Basics Example
+import java.util.Scanner;
+
+public class JavaBasics {
+    public static void main(String[] args) {
+        System.out.println("=== Java Basics Examples ===\\n");
+        
+        // 1. Variables and Data Types
+        System.out.println("1. Variables and Data Types:");
+        System.out.println("-----------------------------");
+        
+        // Primitive data types
+        byte byteVar = 127;
+        short shortVar = 32767;
+        int intVar = 2147483647;
+        long longVar = 9223372036854775807L;
+        float floatVar = 3.14159f;
+        double doubleVar = 3.141592653589793;
+        char charVar = 'A';
+        boolean boolVar = true;
+        
+        System.out.println("byte: " + byteVar);
+        System.out.println("short: " + shortVar);
+        System.out.println("int: " + intVar);
+        System.out.println("long: " + longVar);
+        System.out.println("float: " + floatVar);
+        System.out.println("double: " + doubleVar);
+        System.out.println("char: " + charVar);
+        System.out.println("boolean: " + boolVar);
+        
+        // Reference data type (String)
+        String message = "Hello, Java!";
+        System.out.println("String: " + message);
+        
+        // 2. Operators
+        System.out.println("\\n2. Operators:");
+        System.out.println("--------------");
+        
+        int a = 10, b = 3;
+        System.out.println(a + " + " + b + " = " + (a + b));
+        System.out.println(a + " - " + b + " = " + (a - b));
+        System.out.println(a + " * " + b + " = " + (a * b));
+        System.out.println(a + " / " + b + " = " + (a / b));
+        System.out.println(a + " % " + b + " = " + (a % b));
+        
+        // Relational operators
+        System.out.println(a + " > " + b + " ? " + (a > b));
+        System.out.println(a + " == " + b + " ? " + (a == b));
+        
+        // Logical operators
+        boolean x = true, y = false;
+        System.out.println("true && false = " + (x && y));
+        System.out.println("true || false = " + (x || y));
+        System.out.println("!true = " + (!x));
+        
+        // 3. Control Structures
+        System.out.println("\\n3. Control Structures:");
+        System.out.println("------------------------");
+        
+        // If-else
+        int temperature = 25;
+        System.out.print("Temperature: " + temperature + "°C - ");
+        if (temperature < 0) {
+            System.out.println("Freezing");
+        } else if (temperature < 20) {
+            System.out.println("Cold");
+        } else if (temperature < 30) {
+            System.out.println("Warm");
+        } else {
+            System.out.println("Hot");
+        }
+        
+        // Switch statement
+        int day = 3;
+        System.out.print("\\nDay " + day + " is: ");
+        switch(day) {
+            case 1:
+                System.out.println("Monday");
+                break;
+            case 2:
+                System.out.println("Tuesday");
+                break;
+            case 3:
+                System.out.println("Wednesday");
+                break;
+            case 4:
+                System.out.println("Thursday");
+                break;
+            case 5:
+                System.out.println("Friday");
+                break;
+            case 6:
+                System.out.println("Saturday");
+                break;
+            case 7:
+                System.out.println("Sunday");
+                break;
+            default:
+                System.out.println("Invalid day");
+        }
+        
+        // 4. Loops
+        System.out.println("\\n4. Loops:");
+        System.out.println("-----------");
+        
+        // For loop
+        System.out.print("For loop (1-5): ");
+        for (int i = 1; i <= 5; i++) {
+            System.out.print(i + " ");
+        }
+        System.out.println();
+        
+        // While loop
+        System.out.print("While loop (5-1): ");
+        int count = 5;
+        while (count > 0) {
+            System.out.print(count + " ");
+            count--;
+        }
+        System.out.println();
+        
+        // Do-while loop
+        System.out.print("Do-while loop (1-3): ");
+        int num = 1;
+        do {
+            System.out.print(num + " ");
+            num++;
+        } while (num <= 3);
+        System.out.println();
+        
+        // 5. Arrays
+        System.out.println("\\n5. Arrays:");
+        System.out.println("-----------");
+        
+        int[] numbers = {1, 2, 3, 4, 5};
+        System.out.print("Array elements: ");
+        for (int number : numbers) {
+            System.out.print(number + " ");
+        }
+        System.out.println();
+        
+        // 2D Array
+        int[][] matrix = {
+            {1, 2, 3},
+            {4, 5, 6},
+            {7, 8, 9}
+        };
+        
+        System.out.println("\\n2D Array (Matrix):");
+        for (int i = 0; i < matrix.length; i++) {
+            for (int j = 0; j < matrix[i].length; j++) {
+                System.out.print(matrix[i][j] + " ");
+            }
+            System.out.println();
+        }
+        
+        // 6. Methods
+        System.out.println("\\n6. Methods:");
+        System.out.println("------------");
+        
+        System.out.println("Factorial of 5: " + factorial(5));
+        System.out.println("Is 7 prime? " + isPrime(7));
+        System.out.println("Is 10 prime? " + isPrime(10));
+        
+        // 7. String Methods
+        System.out.println("\\n7. String Methods:");
+        System.out.println("-------------------");
+        
+        String text = "Java Programming";
+        System.out.println("Original: " + text);
+        System.out.println("Length: " + text.length());
+        System.out.println("Uppercase: " + text.toUpperCase());
+        System.out.println("Lowercase: " + text.toLowerCase());
+        System.out.println("Substring (0-4): " + text.substring(0, 4));
+        System.out.println("Contains 'Pro'? " + text.contains("Pro"));
+        System.out.println("Replaced: " + text.replace("Java", "Advanced Java"));
+        
+        System.out.println("\\n=== End of Java Basics ===");
+    }
+    
+    // Method examples
+    public static int factorial(int n) {
+        int result = 1;
+        for (int i = 2; i <= n; i++) {
+            result *= i;
+        }
+        return result;
+    }
+    
+    public static boolean isPrime(int n) {
+        if (n <= 1) return false;
+        for (int i = 2; i <= Math.sqrt(n); i++) {
+            if (n % i == 0) return false;
+        }
+        return true;
+    }
+}`
+            },
+            {
+                id: 'oop',
+                title: 'OOP Concepts',
+                description: 'Classes, objects, inheritance, polymorphism',
+                icon: 'fas fa-cube',
+                tags: ['oop', 'classes', 'inheritance', 'polymorphism'],
+                level: 'intermediate',
+                code: `// Object-Oriented Programming in Java
+import java.util.ArrayList;
+
+public class OOPConcepts {
+    public static void main(String[] args) {
+        System.out.println("=== Object-Oriented Programming Examples ===\\n");
+        
+        // 1. Class and Object
+        System.out.println("1. Class and Object:");
+        System.out.println("---------------------");
+        
+        Book book1 = new Book("The Great Gatsby", "F. Scott Fitzgerald", 1925, 9.99);
+        Book book2 = new Book("1984", "George Orwell", 1949, 8.99);
+        
+        System.out.println(book1.getBookInfo());
+        System.out.println(book2.getBookInfo());
+        
+        // 2. Inheritance
+        System.out.println("\\n2. Inheritance:");
+        System.out.println("----------------");
+        
+        EBook ebook = new EBook("Digital Java", "Tech Author", 2023, 14.99, "PDF", 2.5);
+        System.out.println(ebook.getBookInfo());
+        System.out.println("File Format: " + ebook.getFormat());
+        System.out.println("File Size: " + ebook.getFileSize() + " MB");
+        
+        // 3. Polymorphism
+        System.out.println("\\n3. Polymorphism:");
+        System.out.println("-----------------");
+        
+        // Method Overloading (Compile-time Polymorphism)
+        Calculator calc = new Calculator();
+        System.out.println("Add two integers: " + calc.add(5, 3));
+        System.out.println("Add three integers: " + calc.add(5, 3, 2));
+        System.out.println("Add two doubles: " + calc.add(5.5, 3.2));
+        System.out.println("Add three doubles: " + calc.add(5.5, 3.2, 1.8));
+        
+        // Method Overriding (Runtime Polymorphism)
+        Animal animal1 = new Animal("Generic Animal");
+        Animal animal2 = new Dog("Buddy", "Golden Retriever");
+        Animal animal3 = new Cat("Whiskers", "Gray");
+        
+        System.out.println("\\nAnimal Sounds:");
+        animal1.makeSound();
+        animal2.makeSound();
+        animal3.makeSound();
+        
+        // 4. Abstraction
+        System.out.println("\\n4. Abstraction:");
+        System.out.println("----------------");
+        
+        Shape circle = new Circle(5.0);
+        Shape rectangle = new Rectangle(4.0, 6.0);
+        
+        System.out.println("Circle Area: " + circle.calculateArea());
+        System.out.println("Circle Perimeter: " + circle.calculatePerimeter());
+        
+        System.out.println("Rectangle Area: " + rectangle.calculateArea());
+        System.out.println("Rectangle Perimeter: " + rectangle.calculatePerimeter());
+        
+        // 5. Encapsulation
+        System.out.println("\\n5. Encapsulation:");
+        System.out.println("------------------");
+        
+        BankAccount account = new BankAccount("ACC12345", "John Doe", 1000.00);
+        System.out.println("Account Info: " + account.getAccountInfo());
+        
+        // Deposit money
+        account.deposit(500.00);
+        System.out.println("After deposit: " + account.getAccountInfo());
+        
+        // Withdraw money
+        if (account.withdraw(200.00)) {
+            System.out.println("After withdrawal: " + account.getAccountInfo());
+        }
+        
+        // Try to withdraw more than balance
+        if (!account.withdraw(2000.00)) {
+            System.out.println("Withdrawal failed: Insufficient funds");
+        }
+        
+        // 6. Interfaces
+        System.out.println("\\n6. Interfaces:");
+        System.out.println("---------------");
+        
+        Vehicle car = new Car("Toyota", "Camry", 2022);
+        Vehicle motorcycle = new Motorcycle("Harley", "Sportster", 2021);
+        
+        System.out.println("Car Info: " + car.getInfo());
+        car.start();
+        car.stop();
+        
+        System.out.println("\\nMotorcycle Info: " + motorcycle.getInfo());
+        motorcycle.start();
+        motorcycle.stop();
+        
+        // 7. Static and Final
+        System.out.println("\\n7. Static and Final:");
+        System.out.println("----------------------");
+        
+        System.out.println("MathUtils.PI = " + MathUtils.PI);
+        System.out.println("Max of 10 and 20: " + MathUtils.max(10, 20));
+        System.out.println("Min of 10 and 20: " + MathUtils.min(10, 20));
+        System.out.println("Power 2^3: " + MathUtils.power(2, 3));
+        
+        // 8. Collections with Objects
+        System.out.println("\\n8. Collections with Objects:");
+        System.out.println("-----------------------------");
+        
+        ArrayList<Book> library = new ArrayList<>();
+        library.add(book1);
+        library.add(book2);
+        library.add(ebook);
+        
+        System.out.println("Library Collection:");
+        for (Book book : library) {
+            System.out.println("  - " + book.getTitle());
+        }
+        
+        System.out.println("\\n=== End of OOP Examples ===");
+    }
+}
+
+// 1. Base Class
+class Book {
+    // Encapsulated fields
+    private String title;
+    private String author;
+    private int year;
+    private double price;
+    
+    // Constructor
+    public Book(String title, String author, int year, double price) {
+        this.title = title;
+        this.author = author;
+        this.year = year;
+        this.price = price;
+    }
+    
+    // Getters and Setters (Encapsulation)
+    public String getTitle() {
+        return title;
+    }
+    
+    public void setTitle(String title) {
+        this.title = title;
+    }
+    
+    public String getAuthor() {
+        return author;
+    }
+    
+    public void setAuthor(String author) {
+        this.author = author;
+    }
+    
+    public int getYear() {
+        return year;
+    }
+    
+    public void setYear(int year) {
+        this.year = year;
+    }
+    
+    public double getPrice() {
+        return price;
+    }
+    
+    public void setPrice(double price) {
+        this.price = price;
+    }
+    
+    // Method
+    public String getBookInfo() {
+        return String.format("Book: %s by %s (%d) - $%.2f", 
+                           title, author, year, price);
+    }
+}
+
+// 2. Inheritance
+class EBook extends Book {
+    private String format;
+    private double fileSize;
+    
+    public EBook(String title, String author, int year, double price, 
+                 String format, double fileSize) {
+        super(title, author, year, price); // Call parent constructor
+        this.format = format;
+        this.fileSize = fileSize;
+    }
+    
+    public String getFormat() {
+        return format;
+    }
+    
+    public double getFileSize() {
+        return fileSize;
+    }
+    
+    // Method overriding (Polymorphism)
+    @Override
+    public String getBookInfo() {
+        return super.getBookInfo() + " [E-Book]";
+    }
+}
+
+// 3. Polymorphism - Method Overloading
+class Calculator {
+    public int add(int a, int b) {
+        return a + b;
+    }
+    
+    public int add(int a, int b, int c) {
+        return a + b + c;
+    }
+    
+    public double add(double a, double b) {
+        return a + b;
+    }
+    
+    public double add(double a, double b, double c) {
+        return a + b + c;
+    }
+}
+
+// 4. Polymorphism - Method Overriding
+class Animal {
+    protected String name;
+    
+    public Animal(String name) {
+        this.name = name;
+    }
+    
+    public void makeSound() {
+        System.out.println(name + " makes a generic sound");
+    }
+}
+
+class Dog extends Animal {
+    private String breed;
+    
+    public Dog(String name, String breed) {
+        super(name);
+        this.breed = breed;
+    }
+    
+    @Override
+    public void makeSound() {
+        System.out.println(name + " (" + breed + ") says: Woof Woof!");
+    }
+}
+
+class Cat extends Animal {
+    private String color;
+    
+    public Cat(String name, String color) {
+        super(name);
+        this.color = color;
+    }
+    
+    @Override
+    public void makeSound() {
+        System.out.println(name + " (" + color + " cat) says: Meow!");
+    }
+}
+
+// 5. Abstraction
+abstract class Shape {
+    public abstract double calculateArea();
+    public abstract double calculatePerimeter();
+    
+    public void displayInfo() {
+        System.out.println("Area: " + calculateArea() + ", Perimeter: " + calculatePerimeter());
+    }
+}
+
+class Circle extends Shape {
+    private double radius;
+    
+    public Circle(double radius) {
+        this.radius = radius;
+    }
+    
+    @Override
+    public double calculateArea() {
+        return Math.PI * radius * radius;
+    }
+    
+    @Override
+    public double calculatePerimeter() {
+        return 2 * Math.PI * radius;
+    }
+}
+
+class Rectangle extends Shape {
+    private double length;
+    private double width;
+    
+    public Rectangle(double length, double width) {
+        this.length = length;
+        this.width = width;
+    }
+    
+    @Override
+    public double calculateArea() {
+        return length * width;
+    }
+    
+    @Override
+    public double calculatePerimeter() {
+        return 2 * (length + width);
+    }
+}
+
+// 6. Encapsulation Example
+class BankAccount {
+    private String accountNumber;
+    private String accountHolder;
+    private double balance;
+    
+    public BankAccount(String accountNumber, String accountHolder, double initialBalance) {
+        this.accountNumber = accountNumber;
+        this.accountHolder = accountHolder;
+        this.balance = initialBalance;
+    }
+    
+    public String getAccountNumber() {
+        return accountNumber;
+    }
+    
+    public String getAccountHolder() {
+        return accountHolder;
+    }
+    
+    public double getBalance() {
+        return balance;
+    }
+    
+    public void deposit(double amount) {
+        if (amount > 0) {
+            balance += amount;
+            System.out.println("Deposited: $" + amount);
+        }
+    }
+    
+    public boolean withdraw(double amount) {
+        if (amount > 0 && amount <= balance) {
+            balance -= amount;
+            System.out.println("Withdrawn: $" + amount);
+            return true;
+        }
+        return false;
+    }
+    
+    public String getAccountInfo() {
+        return String.format("Account: %s, Holder: %s, Balance: $%.2f", 
+                           accountNumber, accountHolder, balance);
+    }
+}
+
+// 7. Interface Example
+interface Vehicle {
+    void start();
+    void stop();
+    String getInfo();
+}
+
+class Car implements Vehicle {
+    private String make;
+    private String model;
+    private int year;
+    
+    public Car(String make, String model, int year) {
+        this.make = make;
+        this.model = model;
+        this.year = year;
+    }
+    
+    @Override
+    public void start() {
+        System.out.println("Car engine starting... Vroom!");
+    }
+    
+    @Override
+    public void stop() {
+        System.out.println("Car engine stopping...");
+    }
+    
+    @Override
+    public String getInfo() {
+        return String.format("%s %s (%d)", make, model, year);
+    }
+}
+
+class Motorcycle implements Vehicle {
+    private String make;
+    private String model;
+    private int year;
+    
+    public Motorcycle(String make, String model, int year) {
+        this.make = make;
+        this.model = model;
+        this.year = year;
+    }
+    
+    @Override
+    public void start() {
+        System.out.println("Motorcycle engine starting... Brrrrm!");
+    }
+    
+    @Override
+    public void stop() {
+        System.out.println("Motorcycle engine stopping...");
+    }
+    
+    @Override
+    public String getInfo() {
+        return String.format("%s %s (%d)", make, model, year);
+    }
+}
+
+// 8. Static and Final Example
+class MathUtils {
+    public static final double PI = 3.141592653589793;
+    
+    public static int max(int a, int b) {
+        return (a > b) ? a : b;
+    }
+    
+    public static int min(int a, int b) {
+        return (a < b) ? a : b;
+    }
+    
+    public static double power(double base, int exponent) {
+        return Math.pow(base, exponent);
+    }
+}`
+            },
+            {
+                id: 'collections',
+                title: 'Collections Framework',
+                description: 'ArrayList, HashMap, HashSet, and more',
+                icon: 'fas fa-layer-group',
+                tags: ['collections', 'data-structures', 'generics'],
+                level: 'intermediate',
+                code: `// Java Collections Framework
+import java.util.*;
+import java.util.stream.Collectors;
+
+public class CollectionsDemo {
+    public static void main(String[] args) {
+        System.out.println("=== Java Collections Framework ===\\n");
+        
+        // 1. ArrayList
+        System.out.println("1. ArrayList (Dynamic Array):");
+        System.out.println("-------------------------------");
+        
+        ArrayList<String> fruits = new ArrayList<>();
+        fruits.add("Apple");
+        fruits.add("Banana");
+        fruits.add("Orange");
+        fruits.add("Mango");
+        fruits.add("Grapes");
+        
+        System.out.println("Fruits: " + fruits);
+        System.out.println("Size: " + fruits.size());
+        System.out.println("Contains 'Apple'? " + fruits.contains("Apple"));
+        System.out.println("Element at index 2: " + fruits.get(2));
+        
+        fruits.remove("Banana");
+        System.out.println("After removing 'Banana': " + fruits);
+        
+        // Iterating through ArrayList
+        System.out.print("Iterating: ");
+        for (String fruit : fruits) {
+            System.out.print(fruit + " ");
+        }
+        System.out.println();
+        
+        // 2. LinkedList
+        System.out.println("\\n2. LinkedList:");
+        System.out.println("----------------");
+        
+        LinkedList<Integer> numbers = new LinkedList<>();
+        numbers.add(10);
+        numbers.add(20);
+        numbers.add(30);
+        numbers.addFirst(5);   // Add at beginning
+        numbers.addLast(40);   // Add at end
+        
+        System.out.println("Numbers: " + numbers);
+        System.out.println("First: " + numbers.getFirst());
+        System.out.println("Last: " + numbers.getLast());
+        
+        numbers.removeFirst();
+        numbers.removeLast();
+        System.out.println("After removing first and last: " + numbers);
+        
+        // 3. HashSet (No duplicates, no order)
+        System.out.println("\\n3. HashSet (No duplicates):");
+        System.out.println("-----------------------------");
+        
+        HashSet<String> uniqueNames = new HashSet<>();
+        uniqueNames.add("Alice");
+        uniqueNames.add("Bob");
+        uniqueNames.add("Alice");  // Duplicate - won't be added
+        uniqueNames.add("Charlie");
+        uniqueNames.add("David");
+        
+        System.out.println("Unique Names: " + uniqueNames);
+        System.out.println("Size: " + uniqueNames.size());
+        System.out.println("Contains 'Bob'? " + uniqueNames.contains("Bob"));
+        
+        // 4. TreeSet (Sorted, no duplicates)
+        System.out.println("\\n4. TreeSet (Sorted):");
+        System.out.println("----------------------");
+        
+        TreeSet<Integer> sortedNumbers = new TreeSet<>();
+        sortedNumbers.add(50);
+        sortedNumbers.add(20);
+        sortedNumbers.add(80);
+        sortedNumbers.add(10);
+        sortedNumbers.add(30);
+        
+        System.out.println("Sorted Numbers: " + sortedNumbers);
+        System.out.println("First: " + sortedNumbers.first());
+        System.out.println("Last: " + sortedNumbers.last());
+        System.out.println("Numbers greater than 25: " + sortedNumbers.tailSet(25));
+        
+        // 5. HashMap (Key-Value pairs)
+        System.out.println("\\n5. HashMap (Key-Value pairs):");
+        System.out.println("--------------------------------");
+        
+        HashMap<String, Integer> studentGrades = new HashMap<>();
+        studentGrades.put("Alice", 95);
+        studentGrades.put("Bob", 88);
+        studentGrades.put("Charlie", 92);
+        studentGrades.put("David", 85);
+        
+        System.out.println("Student Grades: " + studentGrades);
+        System.out.println("Alice's grade: " + studentGrades.get("Alice"));
+        System.out.println("Contains key 'Bob'? " + studentGrades.containsKey("Bob"));
+        System.out.println("Contains value 100? " + studentGrades.containsValue(100));
+        
+        // Iterating through HashMap
+        System.out.println("\\nIterating HashMap:");
+        for (Map.Entry<String, Integer> entry : studentGrades.entrySet()) {
+            System.out.println("  " + entry.getKey() + ": " + entry.getValue());
+        }
+        
+        // 6. TreeMap (Sorted by keys)
+        System.out.println("\\n6. TreeMap (Sorted by keys):");
+        System.out.println("-------------------------------");
+        
+        TreeMap<String, Double> productPrices = new TreeMap<>();
+        productPrices.put("Laptop", 999.99);
+        productPrices.put("Mouse", 29.99);
+        productPrices.put("Keyboard", 89.99);
+        productPrices.put("Monitor", 299.99);
+        
+        System.out.println("Product Prices (Sorted): " + productPrices);
+        System.out.println("First product: " + productPrices.firstKey() + " = $" + productPrices.firstEntry().getValue());
+        
+        // 7. Stack (LIFO)
+        System.out.println("\\n7. Stack (LIFO - Last In First Out):");
+        System.out.println("--------------------------------------");
+        
+        Stack<String> stack = new Stack<>();
+        stack.push("First");
+        stack.push("Second");
+        stack.push("Third");
+        stack.push("Fourth");
+        
+        System.out.println("Stack: " + stack);
+        System.out.println("Top element: " + stack.peek());
+        System.out.println("Popped: " + stack.pop());
+        System.out.println("Stack after pop: " + stack);
+        
+        // 8. Queue (FIFO)
+        System.out.println("\\n8. Queue (FIFO - First In First Out):");
+        System.out.println("--------------------------------------");
+        
+        Queue<String> queue = new LinkedList<>();
+        queue.offer("First");
+        queue.offer("Second");
+        queue.offer("Third");
+        queue.offer("Fourth");
+        
+        System.out.println("Queue: " + queue);
+        System.out.println("Front element: " + queue.peek());
+        System.out.println("Polled: " + queue.poll());
+        System.out.println("Queue after poll: " + queue);
+        
+        // 9. PriorityQueue (Natural ordering or custom comparator)
+        System.out.println("\\n9. PriorityQueue (Min-Heap by default):");
+        System.out.println("----------------------------------------");
+        
+        PriorityQueue<Integer> minHeap = new PriorityQueue<>();
+        minHeap.offer(30);
+        minHeap.offer(10);
+        minHeap.offer(50);
+        minHeap.offer(20);
+        minHeap.offer(40);
+        
+        System.out.print("PriorityQueue (Min-Heap): ");
+        while (!minHeap.isEmpty()) {
+            System.out.print(minHeap.poll() + " ");
+        }
+        System.out.println();
+        
+        // Max-Heap using Comparator
+        PriorityQueue<Integer> maxHeap = new PriorityQueue<>(Collections.reverseOrder());
+        maxHeap.offer(30);
+        maxHeap.offer(10);
+        maxHeap.offer(50);
+        maxHeap.offer(20);
+        maxHeap.offer(40);
+        
+        System.out.print("PriorityQueue (Max-Heap): ");
+        while (!maxHeap.isEmpty()) {
+            System.out.print(maxHeap.poll() + " ");
+        }
+        System.out.println();
+        
+        // 10. Collections Utility Methods
+        System.out.println("\\n10. Collections Utility Methods:");
+        System.out.println("----------------------------------");
+        
+        ArrayList<Integer> numbersList = new ArrayList<>(Arrays.asList(5, 2, 8, 1, 9, 3, 7, 4, 6));
+        System.out.println("Original: " + numbersList);
+        
+        Collections.sort(numbersList);
+        System.out.println("Sorted: " + numbersList);
+        
+        Collections.reverse(numbersList);
+        System.out.println("Reversed: " + numbersList);
+        
+        Collections.shuffle(numbersList);
+        System.out.println("Shuffled: " + numbersList);
+        
+        System.out.println("Max: " + Collections.max(numbersList));
+        System.out.println("Min: " + Collections.min(numbersList));
+        
+        // 11. Stream API with Collections (Java 8+)
+        System.out.println("\\n11. Stream API with Collections:");
+        System.out.println("----------------------------------");
+        
+        List<String> cities = Arrays.asList("New York", "London", "Tokyo", "Paris", "Berlin", "Sydney");
+        
+        System.out.println("Cities: " + cities);
+        
+        // Filter cities starting with 'L'
+        List<String> citiesWithL = cities.stream()
+            .filter(city -> city.startsWith("L"))
+            .collect(Collectors.toList());
+        System.out.println("Cities starting with 'L': " + citiesWithL);
+        
+        // Convert to uppercase
+        List<String> upperCaseCities = cities.stream()
+            .map(String::toUpperCase)
+            .collect(Collectors.toList());
+        System.out.println("Cities in uppercase: " + upperCaseCities);
+        
+        // Sort alphabetically
+        List<String> sortedCities = cities.stream()
+            .sorted()
+            .collect(Collectors.toList());
+        System.out.println("Sorted cities: " + sortedCities);
+        
+        // Count cities with more than 5 characters
+        long count = cities.stream()
+            .filter(city -> city.length() > 5)
+            .count();
+        System.out.println("Cities with >5 characters: " + count);
+        
+        // 12. Generic Class Example
+        System.out.println("\\n12. Generic Class Example:");
+        System.out.println("----------------------------");
+        
+        Box<Integer> intBox = new Box<>(42);
+        Box<String> strBox = new Box<>("Hello Generics!");
+        Box<Double> doubleBox = new Box<>(3.14159);
+        
+        System.out.println("Integer Box: " + intBox.getContent());
+        System.out.println("String Box: " + strBox.getContent());
+        System.out.println("Double Box: " + doubleBox.getContent());
+        
+        // 13. Iterator Pattern
+        System.out.println("\\n13. Iterator Pattern:");
+        System.out.println("-----------------------");
+        
+        List<String> colors = Arrays.asList("Red", "Green", "Blue", "Yellow", "Purple");
+        Iterator<String> iterator = colors.iterator();
+        
+        System.out.print("Colors using Iterator: ");
+        while (iterator.hasNext()) {
+            System.out.print(iterator.next() + " ");
+        }
+        System.out.println();
+        
+        // 14. Collections Performance Comparison
+        System.out.println("\\n14. Collections Performance:");
+        System.out.println("------------------------------");
+        
+        System.out.println("• ArrayList: Fast random access, slower insertions in middle");
+        System.out.println("• LinkedList: Fast insertions/deletions, slower random access");
+        System.out.println("• HashSet: Fast lookups, no order");
+        System.out.println("• TreeSet: Sorted, slower than HashSet");
+        System.out.println("• HashMap: Fast key-value lookups");
+        System.out.println("• TreeMap: Sorted by keys, slower than HashMap");
+        
+        System.out.println("\\n=== End of Collections Demo ===");
+    }
+}
+
+// Generic Class
+class Box<T> {
+    private T content;
+    
+    public Box(T content) {
+        this.content = content;
+    }
+    
+    public T getContent() {
+        return content;
+    }
+    
+    public void setContent(T content) {
+        this.content = content;
+    }
+    
+    @Override
+    public String toString() {
+        return "Box containing: " + content;
+    }
+}`
+            },
+            {
+                id: 'exceptions',
+                title: 'Exception Handling',
+                description: 'Try-catch, custom exceptions, error handling',
+                icon: 'fas fa-exclamation-triangle',
+                tags: ['exceptions', 'error-handling', 'try-catch'],
+                level: 'intermediate',
+                code: `// Java Exception Handling
+import java.io.*;
+import java.util.*;
+
+public class ExceptionHandling {
+    public static void main(String[] args) {
+        System.out.println("=== Java Exception Handling ===\\n");
+        
+        // 1. Basic Try-Catch
+        System.out.println("1. Basic Try-Catch:");
+        System.out.println("--------------------");
+        
+        try {
+            int result = divide(10, 0);
+            System.out.println("Result: " + result);
+        } catch (ArithmeticException e) {
+            System.out.println("Error: Cannot divide by zero!");
+            System.out.println("Exception message: " + e.getMessage());
+            System.out.println("Exception type: " + e.getClass().getName());
+        }
+        
+        // 2. Multiple Catch Blocks
+        System.out.println("\\n2. Multiple Catch Blocks:");
+        System.out.println("--------------------------");
+        
+        try {
+            String text = null;
+            System.out.println("Text length: " + text.length());
+            int number = Integer.parseInt("abc");
+        } catch (NullPointerException e) {
+            System.out.println("NullPointerException: Object is null");
+        } catch (NumberFormatException e) {
+            System.out.println("NumberFormatException: Invalid number format");
+        } catch (Exception e) {
+            System.out.println("General Exception: " + e.getMessage());
+        }
+        
+        // 3. Finally Block
+        System.out.println("\\n3. Finally Block:");
+        System.out.println("------------------");
+        
+        FileReader reader = null;
+        try {
+            reader = new FileReader("nonexistent.txt");
+            System.out.println("File opened successfully");
+        } catch (FileNotFoundException e) {
+            System.out.println("File not found: " + e.getMessage());
+        } finally {
+            System.out.println("Finally block executed");
+            if (reader != null) {
+                try {
+                    reader.close();
+                    System.out.println("File reader closed");
+                } catch (IOException e) {
+                    System.out.println("Error closing file: " + e.getMessage());
+                }
+            }
+        }
+        
+        // 4. Try-With-Resources (Java 7+)
+        System.out.println("\\n4. Try-With-Resources:");
+        System.out.println("-----------------------");
+        
+        try (BufferedReader br = new BufferedReader(new StringReader("Hello\nWorld\nJava"))) {
+            String line;
+            System.out.println("Reading lines:");
+            while ((line = br.readLine()) != null) {
+                System.out.println("  " + line);
+            }
+        } catch (IOException e) {
+            System.out.println("IO Error: " + e.getMessage());
+        }
+        
+        // 5. Custom Exceptions
+        System.out.println("\\n5. Custom Exceptions:");
+        System.out.println("----------------------");
+        
+        try {
+            validateAge(15);
+            validateAge(25);
+        } catch (InvalidAgeException e) {
+            System.out.println("Custom Exception: " + e.getMessage());
+            System.out.println("Invalid age: " + e.getInvalidAge());
+        }
+        
+        // 6. Throwing Exceptions
+        System.out.println("\\n6. Throwing Exceptions:");
+        System.out.println("------------------------");
+        
+        try {
+            processUserInput("");
+        } catch (IllegalArgumentException e) {
+            System.out.println("IllegalArgumentException: " + e.getMessage());
+        }
+        
+        // 7. Checked vs Unchecked Exceptions
+        System.out.println("\\n7. Checked vs Unchecked Exceptions:");
+        System.out.println("-----------------------------------");
+        
+        // Unchecked exception (RuntimeException - doesn't need to be declared)
+        try {
+            int[] arr = new int[5];
+            arr[10] = 50; // ArrayIndexOutOfBoundsException
+        } catch (ArrayIndexOutOfBoundsException e) {
+            System.out.println("Unchecked Exception: " + e.getClass().getSimpleName());
+        }
+        
+        // Checked exception (must be caught or declared)
+        try {
+            readFile("test.txt");
+        } catch (IOException e) {
+            System.out.println("Checked Exception: " + e.getClass().getSimpleName());
+        }
+        
+        // 8. Exception Propagation
+        System.out.println("\\n8. Exception Propagation:");
+        System.out.println("--------------------------");
+        
+        try {
+            methodA();
+        } catch (Exception e) {
+            System.out.println("Exception caught in main: " + e.getMessage());
+            System.out.println("Stack Trace:");
+            e.printStackTrace();
+        }
+        
+        // 9. Nested Try-Catch
+        System.out.println("\\n9. Nested Try-Catch:");
+        System.out.println("---------------------");
+        
+        try {
+            System.out.println("Outer try block");
+            try {
+                int[] numbers = {1, 2, 3};
+                System.out.println("Number at index 5: " + numbers[5]);
+            } catch (ArrayIndexOutOfBoundsException e) {
+                System.out.println("Inner catch: Array index out of bounds");
+                throw new RuntimeException("Rethrowing exception", e);
+            }
+        } catch (RuntimeException e) {
+            System.out.println("Outer catch: " + e.getMessage());
+            if (e.getCause() != null) {
+                System.out.println("Caused by: " + e.getCause().getMessage());
+            }
+        }
+        
+        // 10. Best Practices Example
+        System.out.println("\\n10. Best Practices Example:");
+        System.out.println("----------------------------");
+        
+        BankAccount account = new BankAccount("ACC001", 1000);
+        
+        try {
+            account.deposit(-500);
+        } catch (InvalidAmountException e) {
+            System.out.println("Deposit failed: " + e.getMessage());
+        }
+        
+        try {
+            account.withdraw(2000);
+        } catch (InsufficientFundsException e) {
+            System.out.println("Withdrawal failed: " + e.getMessage());
+            System.out.println("Current balance: $" + e.getCurrentBalance());
+            System.out.println("Attempted withdrawal: $" + e.getAttemptedAmount());
+        }
+        
+        System.out.println("\\nFinal balance: $" + account.getBalance());
+        
+        // 11. Using Optional for Null Safety (Java 8+)
+        System.out.println("\\n11. Optional for Null Safety:");
+        System.out.println("------------------------------");
+        
+        Optional<String> optionalValue = getValue(false);
+        
+        if (optionalValue.isPresent()) {
+            System.out.println("Value: " + optionalValue.get());
+        } else {
+            System.out.println("Value is absent (null)");
+        }
+        
+        // Using ifPresent
+        getValue(true).ifPresent(value -> 
+            System.out.println("Value found: " + value)
+        );
+        
+        // Using orElse
+        String result = getValue(false).orElse("Default Value");
+        System.out.println("Result with default: " + result);
+        
+        System.out.println("\\n=== End of Exception Handling ===");
+    }
+    
+    // Helper methods for demonstrations
+    
+    public static int divide(int a, int b) {
+        return a / b;
+    }
+    
+    public static void validateAge(int age) throws InvalidAgeException {
+        if (age < 18) {
+            throw new InvalidAgeException("Age must be 18 or older", age);
+        }
+        System.out.println("Age " + age + " is valid");
+    }
+    
+    public static void processUserInput(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            throw new IllegalArgumentException("Input cannot be empty");
+        }
+        System.out.println("Processing: " + input);
+    }
+    
+    public static void readFile(String filename) throws IOException {
+        // Simulating file reading that might throw IOException
+        throw new IOException("File '" + filename + "' not found");
+    }
+    
+    public static void methodA() {
+        methodB();
+    }
+    
+    public static void methodB() {
+        methodC();
+    }
+    
+    public static void methodC() {
+        throw new RuntimeException("Exception from methodC");
+    }
+    
+    public static Optional<String> getValue(boolean returnValue) {
+        return returnValue ? Optional.of("Actual Value") : Optional.empty();
+    }
+}
+
+// Custom Exception Classes
+
+class InvalidAgeException extends Exception {
+    private int invalidAge;
+    
+    public InvalidAgeException(String message, int invalidAge) {
+        super(message);
+        this.invalidAge = invalidAge;
+    }
+    
+    public int getInvalidAge() {
+        return invalidAge;
+    }
+}
+
+class InvalidAmountException extends Exception {
+    public InvalidAmountException(String message) {
+        super(message);
+    }
+}
+
+class InsufficientFundsException extends Exception {
+    private double currentBalance;
+    private double attemptedAmount;
+    
+    public InsufficientFundsException(String message, double currentBalance, double attemptedAmount) {
+        super(message);
+        this.currentBalance = currentBalance;
+        this.attemptedAmount = attemptedAmount;
+    }
+    
+    public double getCurrentBalance() {
+        return currentBalance;
+    }
+    
+    public double getAttemptedAmount() {
+        return attemptedAmount;
+    }
+}
+
+// Bank Account with proper exception handling
+class BankAccount {
+    private String accountNumber;
+    private double balance;
+    
+    public BankAccount(String accountNumber, double initialBalance) {
+        this.accountNumber = accountNumber;
+        this.balance = initialBalance;
+    }
+    
+    public void deposit(double amount) throws InvalidAmountException {
+        if (amount <= 0) {
+            throw new InvalidAmountException("Deposit amount must be positive: $" + amount);
+        }
+        balance += amount;
+        System.out.println("Deposited: $" + amount);
+    }
+    
+    public void withdraw(double amount) throws InsufficientFundsException {
+        if (amount > balance) {
+            throw new InsufficientFundsException(
+                "Insufficient funds for withdrawal",
+                balance,
+                amount
+            );
+        }
+        balance -= amount;
+        System.out.println("Withdrawn: $" + amount);
+    }
+    
+    public double getBalance() {
+        return balance;
+    }
+    
+    public String getAccountNumber() {
+        return accountNumber;
+    }
+}
+
+// Exception Best Practices:
+// 1. Use specific exception types
+// 2. Don't catch generic Exception unless necessary
+// 3. Clean up resources in finally or use try-with-resources
+// 4. Don't swallow exceptions (empty catch blocks)
+// 5. Log exceptions properly
+// 6. Use custom exceptions for business logic errors
+// 7. Preserve exception chains when rethrowing
+// 8. Use Optional for null safety instead of returning null` 
+            },
+            {
+                id: 'threads',
+                title: 'Multithreading',
+                description: 'Threads, synchronization, executors, concurrency',
+                icon: 'fas fa-stream',
+                tags: ['multithreading', 'concurrency', 'threads'],
+                level: 'advanced',
+                code: `// Java Multithreading and Concurrency
+import java.util.concurrent.*;
+import java.util.concurrent.locks.*;
+import java.util.concurrent.atomic.*;
+
+public class MultithreadingDemo {
+    public static void main(String[] args) {
+        System.out.println("=== Java Multithreading and Concurrency ===\\n");
+        
+        // 1. Creating Threads (Extending Thread class)
+        System.out.println("1. Creating Threads (Extending Thread):");
+        System.out.println("----------------------------------------");
+        
+        MyThread thread1 = new MyThread("Thread-1");
+        MyThread thread2 = new MyThread("Thread-2");
+        
+        thread1.start();
+        thread2.start();
+        
+        try {
+            thread1.join();
+            thread2.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        
+        // 2. Creating Threads (Implementing Runnable)
+        System.out.println("\\n2. Creating Threads (Implementing Runnable):");
+        System.out.println("---------------------------------------------");
+        
+        Thread runnableThread1 = new Thread(new MyRunnable(), "Runnable-1");
+        Thread runnableThread2 = new Thread(new MyRunnable(), "Runnable-2");
+        
+        runnableThread1.start();
+        runnableThread2.start();
+        
+        try {
+            runnableThread1.join();
+            runnableThread2.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        
+        // 3. Thread Sleep and Interruption
+        System.out.println("\\n3. Thread Sleep and Interruption:");
+        System.out.println("-----------------------------------");
+        
+        Thread sleeperThread = new Thread(() -> {
+            try {
+                System.out.println(Thread.currentThread().getName() + " is going to sleep");
+                Thread.sleep(3000);
+                System.out.println(Thread.currentThread().getName() + " woke up");
+            } catch (InterruptedException e) {
+                System.out.println(Thread.currentThread().getName() + " was interrupted!");
+            }
+        }, "Sleeper");
+        
+        sleeperThread.start();
+        
+        try {
+            Thread.sleep(1000);
+            sleeperThread.interrupt();
+            sleeperThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        
+        // 4. Thread Priority
+        System.out.println("\\n4. Thread Priority:");
+        System.out.println("--------------------");
+        
+        Thread lowPriority = new Thread(new CounterTask(), "Low-Priority");
+        Thread highPriority = new Thread(new CounterTask(), "High-Priority");
+        
+        lowPriority.setPriority(Thread.MIN_PRIORITY);
+        highPriority.setPriority(Thread.MAX_PRIORITY);
+        
+        lowPriority.start();
+        highPriority.start();
+        
+        try {
+            lowPriority.join();
+            highPriority.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        
+        // 5. Synchronization (synchronized keyword)
+        System.out.println("\\n5. Synchronization (synchronized keyword):");
+        System.out.println("--------------------------------------------");
+        
+        SharedCounter sharedCounter = new SharedCounter();
+        
+        Thread[] syncThreads = new Thread[5];
+        for (int i = 0; i < 5; i++) {
+            syncThreads[i] = new Thread(new SynchronizedCounterTask(sharedCounter), "Sync-Thread-" + i);
+            syncThreads[i].start();
+        }
+        
+        for (Thread t : syncThreads) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        
+        System.out.println("Final synchronized count: " + sharedCounter.getCount());
+        
+        // 6. Atomic Variables
+        System.out.println("\\n6. Atomic Variables:");
+        System.out.println("---------------------");
+        
+        AtomicCounter atomicCounter = new AtomicCounter();
+        
+        Thread[] atomicThreads = new Thread[5];
+        for (int i = 0; i < 5; i++) {
+            atomicThreads[i] = new Thread(new AtomicCounterTask(atomicCounter), "Atomic-Thread-" + i);
+            atomicThreads[i].start();
+        }
+        
+        for (Thread t : atomicThreads) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        
+        System.out.println("Final atomic count: " + atomicCounter.getCount());
+        
+        // 7. ReentrantLock
+        System.out.println("\\n7. ReentrantLock:");
+        System.out.println("------------------");
+        
+        LockExample lockExample = new LockExample();
+        
+        Thread[] lockThreads = new Thread[3];
+        for (int i = 0; i < 3; i++) {
+            lockThreads[i] = new Thread(() -> {
+                lockExample.performTask();
+            }, "Lock-Thread-" + i);
+            lockThreads[i].start();
+        }
+        
+        for (Thread t : lockThreads) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        
+        // 8. ExecutorService
+        System.out.println("\\n8. ExecutorService (Thread Pool):");
+        System.out.println("-----------------------------------");
+        
+        ExecutorService executor = Executors.newFixedThreadPool(3);
+        
+        List<Future<Integer>> futures = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            final int taskId = i;
+            Future<Integer> future = executor.submit(() -> {
+                System.out.println(Thread.currentThread().getName() + " executing task " + taskId);
+                Thread.sleep(1000);
+                return taskId * 10;
+            });
+            futures.add(future);
+        }
+        
+        executor.shutdown();
+        try {
+            executor.awaitTermination(5, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        
+        System.out.println("\\nTask Results:");
+        for (Future<Integer> future : futures) {
+            try {
+                System.out.println("Result: " + future.get());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        
+        // 9. Callable and Future
+        System.out.println("\\n9. Callable and Future:");
+        System.out.println("-------------------------");
+        
+        ExecutorService callableExecutor = Executors.newSingleThreadExecutor();
+        
+        Future<Integer> factorialFuture = callableExecutor.submit(new FactorialTask(5));
+        
+        try {
+            System.out.println("Calculating factorial of 5...");
+            int result = factorialFuture.get(2, TimeUnit.SECONDS);
+            System.out.println("Factorial of 5 = " + result);
+        } catch (TimeoutException e) {
+            System.out.println("Calculation took too long!");
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            callableExecutor.shutdown();
+        }
+        
+        // 10. CompletableFuture (Java 8+)
+        System.out.println("\\n10. CompletableFuture (Java 8+):");
+        System.out.println("----------------------------------");
+        
+        CompletableFuture<Void> future1 = CompletableFuture.runAsync(() -> {
+            System.out.println("Async task 1 running in " + Thread.currentThread().getName());
+            try { Thread.sleep(1000); } catch (InterruptedException e) {}
+        });
+        
+        CompletableFuture<String> future2 = CompletableFuture.supplyAsync(() -> {
+            System.out.println("Async task 2 running in " + Thread.currentThread().getName());
+            try { Thread.sleep(500); } catch (InterruptedException e) {}
+            return "Hello from CompletableFuture";
+        });
+        
+        CompletableFuture<String> combined = future1.thenCombine(future2, (voidResult, stringResult) -> {
+            return "Combined: " + stringResult;
+        });
+        
+        try {
+            System.out.println(combined.get());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        // 11. Producer-Consumer Pattern
+        System.out.println("\\n11. Producer-Consumer Pattern:");
+        System.out.println("-------------------------------");
+        
+        BlockingQueue<Integer> queue = new LinkedBlockingQueue<>(5);
+        
+        Thread producer = new Thread(new Producer(queue, 10), "Producer");
+        Thread consumer = new Thread(new Consumer(queue, 10), "Consumer");
+        
+        producer.start();
+        consumer.start();
+        
+        try {
+            producer.join();
+            consumer.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        
+        // 12. Deadlock Example and Prevention
+        System.out.println("\\n12. Deadlock Prevention:");
+        System.out.println("--------------------------");
+        
+        DeadlockPrevention prevention = new DeadlockPrevention();
+        
+        Thread t1 = new Thread(() -> prevention.transfer(prevention.account1, prevention.account2, 100), "Thread-1");
+        Thread t2 = new Thread(() -> prevention.transfer(prevention.account2, prevention.account1, 50), "Thread-2");
+        
+        t1.start();
+        t2.start();
+        
+        try {
+            t1.join();
+            t2.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        
+        System.out.println("Account 1 balance: $" + prevention.account1.getBalance());
+        System.out.println("Account 2 balance: $" + prevention.account2.getBalance());
+        
+        System.out.println("\\n=== End of Multithreading Demo ===");
+    }
+}
+
+// 1. Extending Thread class
+class MyThread extends Thread {
+    public MyThread(String name) {
+        super(name);
+    }
+    
+    @Override
+    public void run() {
+        for (int i = 1; i <= 3; i++) {
+            System.out.println(getName() + " - Count: " + i);
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                System.out.println(getName() + " interrupted");
+            }
+        }
+    }
+}
+
+// 2. Implementing Runnable
+class MyRunnable implements Runnable {
+    @Override
+    public void run() {
+        for (int i = 1; i <= 3; i++) {
+            System.out.println(Thread.currentThread().getName() + " - Runnable Count: " + i);
+            try {
+                Thread.sleep(300);
+            } catch (InterruptedException e) {
+                System.out.println(Thread.currentThread().getName() + " interrupted");
+            }
+        }
+    }
+}
+
+// 4. Counter Task for Priority Demo
+class CounterTask implements Runnable {
+    @Override
+    public void run() {
+        int count = 0;
+        for (int i = 0; i < 1000000; i++) {
+            count++;
+        }
+        System.out.println(Thread.currentThread().getName() + " finished counting");
+    }
+}
+
+// 5. Shared Counter with Synchronization
+class SharedCounter {
+    private int count = 0;
+    
+    public synchronized void increment() {
+        count++;
+    }
+    
+    public synchronized int getCount() {
+        return count;
+    }
+}
+
+class SynchronizedCounterTask implements Runnable {
+    private SharedCounter counter;
+    
+    public SynchronizedCounterTask(SharedCounter counter) {
+        this.counter = counter;
+    }
+    
+    @Override
+    public void run() {
+        for (int i = 0; i < 1000; i++) {
+            counter.increment();
+        }
+        System.out.println(Thread.currentThread().getName() + " finished incrementing");
+    }
+}
+
+// 6. Atomic Counter
+class AtomicCounter {
+    private AtomicInteger count = new AtomicInteger(0);
+    
+    public void increment() {
+        count.incrementAndGet();
+    }
+    
+    public int getCount() {
+        return count.get();
+    }
+}
+
+class AtomicCounterTask implements Runnable {
+    private AtomicCounter counter;
+    
+    public AtomicCounterTask(AtomicCounter counter) {
+        this.counter = counter;
+    }
+    
+    @Override
+    public void run() {
+        for (int i = 0; i < 1000; i++) {
+            counter.increment();
+        }
+        System.out.println(Thread.currentThread().getName() + " finished atomic increment");
+    }
+}
+
+// 7. ReentrantLock Example
+class LockExample {
+    private final ReentrantLock lock = new ReentrantLock();
+    
+    public void performTask() {
+        lock.lock();
+        try {
+            System.out.println(Thread.currentThread().getName() + " acquired lock");
+            Thread.sleep(1000);
+            System.out.println(Thread.currentThread().getName() + " performing critical task");
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            System.out.println(Thread.currentThread().getName() + " releasing lock");
+            lock.unlock();
+        }
+    }
+}
+
+// 9. Callable Task
+class FactorialTask implements Callable<Integer> {
+    private int number;
+    
+    public FactorialTask(int number) {
+        this.number = number;
+    }
+    
+    @Override
+    public Integer call() throws Exception {
+        if (number < 0) {
+            throw new IllegalArgumentException("Number must be non-negative");
+        }
+        
+        int result = 1;
+        for (int i = 2; i <= number; i++) {
+            result *= i;
+            Thread.sleep(100); // Simulate computation time
+        }
+        return result;
+    }
+}
+
+// 11. Producer-Consumer Pattern
+class Producer implements Runnable {
+    private BlockingQueue<Integer> queue;
+    private int maxItems;
+    
+    public Producer(BlockingQueue<Integer> queue, int maxItems) {
+        this.queue = queue;
+        this.maxItems = maxItems;
+    }
+    
+    @Override
+    public void run() {
+        try {
+            for (int i = 1; i <= maxItems; i++) {
+                System.out.println("Producing: " + i);
+                queue.put(i);
+                Thread.sleep(200);
+            }
+            System.out.println("Producer finished");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+
+class Consumer implements Runnable {
+    private BlockingQueue<Integer> queue;
+    private int maxItems;
+    
+    public Consumer(BlockingQueue<Integer> queue, int maxItems) {
+        this.queue = queue;
+        this.maxItems = maxItems;
+    }
+    
+    @Override
+    public void run() {
+        try {
+            for (int i = 1; i <= maxItems; i++) {
+                Integer item = queue.take();
+                System.out.println("Consuming: " + item);
+                Thread.sleep(300);
+            }
+            System.out.println("Consumer finished");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+
+// 12. Deadlock Prevention
+class Account {
+    private int id;
+    private double balance;
+    
+    public Account(int id, double balance) {
+        this.id = id;
+        this.balance = balance;
+    }
+    
+    public void deposit(double amount) {
+        balance += amount;
+    }
+    
+    public void withdraw(double amount) {
+        balance -= amount;
+    }
+    
+    public double getBalance() {
+        return balance;
+    }
+    
+    public int getId() {
+        return id;
+    }
+}
+
+class DeadlockPrevention {
+    public Account account1 = new Account(1, 1000);
+    public Account account2 = new Account(2, 1000);
+    
+    // Global order for lock acquisition to prevent deadlock
+    public void transfer(Account from, Account to, double amount) {
+        Account first = from.getId() < to.getId() ? from : to;
+        Account second = from.getId() < to.getId() ? to : from;
+        
+        synchronized (first) {
+            synchronized (second) {
+                if (from.getBalance() >= amount) {
+                    from.withdraw(amount);
+                    to.deposit(amount);
+                    System.out.println(Thread.currentThread().getName() + 
+                                     " transferred $" + amount + 
+                                     " from Account " + from.getId() + 
+                                     " to Account " + to.getId());
+                } else {
+                    System.out.println("Insufficient funds in Account " + from.getId());
+                }
+            }
+        }
+    }
+}` 
+            },
+            {
+                id: 'advanced',
+                title: 'Advanced Java',
+                description: 'Streams, Lambdas, Optional, new Java features',
+                icon: 'fas fa-rocket',
+                tags: ['java8', 'streams', 'lambda', 'advanced'],
+                level: 'advanced',
+                code: `// Advanced Java Features (Java 8+)
+import java.util.*;
+import java.util.function.*;
+import java.util.stream.*;
+import java.time.*;
+import java.time.format.*;
+import java.io.*;
+import java.nio.file.*;
+
+public class AdvancedJava {
+    public static void main(String[] args) {
+        System.out.println("=== Advanced Java Features (Java 8+) ===\\n");
+        
+        // 1. Lambda Expressions
+        System.out.println("1. Lambda Expressions:");
+        System.out.println("----------------------");
+        
+        // Traditional way (Anonymous class)
+        Runnable traditionalRunnable = new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("Traditional anonymous class");
+            }
+        };
+        
+        // Lambda way
+        Runnable lambdaRunnable = () -> System.out.println("Lambda expression");
+        
+        traditionalRunnable.run();
+        lambdaRunnable.run();
+        
+        // Lambda with parameters
+        MathOperation addition = (a, b) -> a + b;
+        MathOperation multiplication = (a, b) -> a * b;
+        
+        System.out.println("10 + 5 = " + operate(10, 5, addition));
+        System.out.println("10 * 5 = " + operate(10, 5, multiplication));
+        
+        // 2. Functional Interfaces
+        System.out.println("\\n2. Functional Interfaces:");
+        System.out.println("--------------------------");
+        
+        // Built-in functional interfaces
+        Predicate<Integer> isEven = n -> n % 2 == 0;
+        Function<String, Integer> stringLength = String::length;
+        Consumer<String> printUpperCase = s -> System.out.println(s.toUpperCase());
+        Supplier<Double> randomSupplier = Math::random;
+        
+        System.out.println("Is 10 even? " + isEven.test(10));
+        System.out.println("Length of 'Java': " + stringLength.apply("Java"));
+        printUpperCase.accept("hello functional interfaces");
+        System.out.println("Random number: " + randomSupplier.get());
+        
+        // 3. Stream API
+        System.out.println("\\n3. Stream API:");
+        System.out.println("---------------");
+        
+        List<String> cities = Arrays.asList(
+            "New York", "London", "Tokyo", "Paris", 
+            "Berlin", "Sydney", "Beijing", "Mumbai"
+        );
+        
+        System.out.println("Original list: " + cities);
+        
+        // Filter and collect
+        List<String> citiesWithL = cities.stream()
+            .filter(city -> city.startsWith("L"))
+            .collect(Collectors.toList());
+        System.out.println("Cities starting with 'L': " + citiesWithL);
+        
+        // Map and collect
+        List<String> upperCaseCities = cities.stream()
+            .map(String::toUpperCase)
+            .collect(Collectors.toList());
+        System.out.println("Cities in uppercase: " + upperCaseCities);
+        
+        // Sort
+        List<String> sortedCities = cities.stream()
+            .sorted()
+            .collect(Collectors.toList());
+        System.out.println("Sorted cities: " + sortedCities);
+        
+        // Limit and skip
+        List<String> firstThree = cities.stream()
+            .limit(3)
+            .collect(Collectors.toList());
+        System.out.println("First 3 cities: " + firstThree);
+        
+        // Count
+        long count = cities.stream()
+            .filter(city -> city.length() > 6)
+            .count();
+        System.out.println("Cities with >6 characters: " + count);
+        
+        // Find first
+        Optional<String> firstCity = cities.stream()
+            .filter(city -> city.contains("o"))
+            .findFirst();
+        firstCity.ifPresent(city -> System.out.println("First city with 'o': " + city));
+        
+        // Any match, all match
+        boolean anyStartsWithB = cities.stream()
+            .anyMatch(city -> city.startsWith("B"));
+        System.out.println("Any city starts with 'B'? " + anyStartsWithB);
+        
+        // 4. Stream Operations on Numbers
+        System.out.println("\\n4. Stream Operations on Numbers:");
+        System.out.println("----------------------------------");
+        
+        List<Integer> numbers = Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        
+        int sum = numbers.stream()
+            .mapToInt(Integer::intValue)
+            .sum();
+        System.out.println("Sum: " + sum);
+        
+        double average = numbers.stream()
+            .mapToInt(Integer::intValue)
+            .average()
+            .orElse(0);
+        System.out.println("Average: " + average);
+        
+        int max = numbers.stream()
+            .mapToInt(Integer::intValue)
+            .max()
+            .orElse(0);
+        System.out.println("Max: " + max);
+        
+        // Reduce
+        int product = numbers.stream()
+            .reduce(1, (a, b) -> a * b);
+        System.out.println("Product: " + product);
+        
+        // 5. Parallel Streams
+        System.out.println("\\n5. Parallel Streams:");
+        System.out.println("---------------------");
+        
+        List<Integer> largeList = IntStream.range(1, 1000000)
+            .boxed()
+            .collect(Collectors.toList());
+        
+        long start = System.currentTimeMillis();
+        long sequentialSum = largeList.stream()
+            .mapToLong(Integer::longValue)
+            .sum();
+        long sequentialTime = System.currentTimeMillis() - start;
+        
+        start = System.currentTimeMillis();
+        long parallelSum = largeList.parallelStream()
+            .mapToLong(Integer::longValue)
+            .sum();
+        long parallelTime = System.currentTimeMillis() - start;
+        
+        System.out.println("Sequential sum: " + sequentialSum + " (Time: " + sequentialTime + "ms)");
+        System.out.println("Parallel sum: " + parallelSum + " (Time: " + parallelTime + "ms)");
+        
+        // 6. Optional Class
+        System.out.println("\\n6. Optional Class:");
+        System.out.println("-------------------");
+        
+        Optional<String> optionalWithValue = Optional.of("Hello");
+        Optional<String> optionalEmpty = Optional.empty();
+        
+        // Traditional null check
+        String traditionalResult = null;
+        if (optionalWithValue.isPresent()) {
+            traditionalResult = optionalWithValue.get();
+        }
+        System.out.println("Traditional: " + traditionalResult);
+        
+        // Modern Optional usage
+        optionalWithValue.ifPresent(value -> 
+            System.out.println("IfPresent: " + value)
+        );
+        
+        String orElseResult = optionalEmpty.orElse("Default Value");
+        System.out.println("OrElse: " + orElseResult);
+        
+        String orElseGetResult = optionalEmpty.orElseGet(() -> 
+            "Generated " + System.currentTimeMillis()
+        );
+        System.out.println("OrElseGet: " + orElseGetResult);
+        
+        // Optional with map and flatMap
+        Optional<String> transformed = optionalWithValue
+            .map(String::toUpperCase)
+            .map(s -> s + "!!!");
+        transformed.ifPresent(System.out::println);
+        
+        // 7. Date and Time API (Java 8+)
+        System.out.println("\\n7. Date and Time API:");
+        System.out.println("----------------------");
+        
+        // Current date and time
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+        LocalDateTime currentDateTime = LocalDateTime.now();
+        
+        System.out.println("Today: " + today);
+        System.out.println("Now: " + now);
+        System.out.println("Current Date-Time: " + currentDateTime);
+        
+        // Creating specific dates
+        LocalDate birthDate = LocalDate.of(1990, Month.JANUARY, 15);
+        LocalTime meetingTime = LocalTime.of(14, 30);
+        
+        System.out.println("Birth Date: " + birthDate);
+        System.out.println("Meeting Time: " + meetingTime);
+        
+        // Date calculations
+        LocalDate nextWeek = today.plusWeeks(1);
+        LocalDate lastMonth = today.minusMonths(1);
+        
+        System.out.println("Next week: " + nextWeek);
+        System.out.println("Last month: " + lastMonth);
+        
+        // Duration and Period
+        Duration duration = Duration.between(meetingTime, now);
+        Period period = Period.between(birthDate, today);
+        
+        System.out.println("Duration since meeting time: " + duration.toMinutes() + " minutes");
+        System.out.println("Age: " + period.getYears() + " years, " + 
+                         period.getMonths() + " months, " + 
+                         period.getDays() + " days");
+        
+        // Formatting
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        String formatted = currentDateTime.format(formatter);
+        System.out.println("Formatted: " + formatted);
+        
+        // 8. Method References
+        System.out.println("\\n8. Method References:");
+        System.out.println("----------------------");
+        
+        List<String> names = Arrays.asList("Alice", "Bob", "Charlie", "Diana");
+        
+        // Static method reference
+        names.forEach(System.out::println);
+        
+        // Instance method reference
+        names.sort(String::compareToIgnoreCase);
+        System.out.println("Sorted names: " + names);
+        
+        // Constructor reference
+        Supplier<List<String>> listSupplier = ArrayList::new;
+        List<String> newList = listSupplier.get();
+        newList.add("Constructor reference example");
+        System.out.println("New list: " + newList);
+        
+        // 9. Default and Static Methods in Interfaces
+        System.out.println("\\n9. Default and Static Methods in Interfaces:");
+        System.out.println("------------------------------------------------");
+        
+        Vehicle car = new Car("Toyota", "Camry");
+        Vehicle electricCar = new ElectricCar("Tesla", "Model 3", 75);
+        
+        System.out.println(car.getInfo());
+        car.start();
+        car.honk();
+        
+        System.out.println("\\n" + electricCar.getInfo());
+        electricCar.start();
+        electricCar.honk();
+        
+        // Static method from interface
+        System.out.println("\\nVehicle type: " + Vehicle.getType());
+        
+        // 10. Collectors Advanced
+        System.out.println("\\n10. Advanced Collectors:");
+        System.out.println("-------------------------");
+        
+        List<Person> people = Arrays.asList(
+            new Person("Alice", 25, "Engineering"),
+            new Person("Bob", 30, "Sales"),
+            new Person("Charlie", 35, "Engineering"),
+            new Person("Diana", 28, "HR"),
+            new Person("Eve", 32, "Sales"),
+            new Person("Frank", 40, "Engineering")
+        );
+        
+        // Group by department
+        Map<String, List<Person>> byDepartment = people.stream()
+            .collect(Collectors.groupingBy(Person::getDepartment));
+        
+        System.out.println("\\nPeople by department:");
+        byDepartment.forEach((dept, deptPeople) -> {
+            System.out.println(dept + ": " + 
+                deptPeople.stream()
+                    .map(Person::getName)
+                    .collect(Collectors.joining(", ")));
+        });
+        
+        // Average age by department
+        Map<String, Double> avgAgeByDept = people.stream()
+            .collect(Collectors.groupingBy(
+                Person::getDepartment,
+                Collectors.averagingInt(Person::getAge)
+            ));
+        
+        System.out.println("\\nAverage age by department:");
+        avgAgeByDept.forEach((dept, avgAge) -> 
+            System.out.println(dept + ": " + String.format("%.1f", avgAge))
+        );
+        
+        // Partition by age (above/below 30)
+        Map<Boolean, List<Person>> partitionedByAge = people.stream()
+            .collect(Collectors.partitioningBy(p -> p.getAge() >= 30));
+        
+        System.out.println("\\nPartitioned by age (>=30):");
+        System.out.println("30 or older: " + 
+            partitionedByAge.get(true).stream()
+                .map(Person::getName)
+                .collect(Collectors.joining(", ")));
+        
+        System.out.println("Younger than 30: " + 
+            partitionedByAge.get(false).stream()
+                .map(Person::getName)
+                .collect(Collectors.joining(", ")));
+        
+        // 11. Files API (Java 7+)
+        System.out.println("\\n11. Files API (Java 7+):");
+        System.out.println("-------------------------");
+        
+        try {
+            // Create temporary file
+            Path tempFile = Files.createTempFile("java_demo_", ".txt");
+            System.out.println("Created temp file: " + tempFile);
+            
+            // Write to file
+            String content = "Hello from Java Files API!\\nThis is a test.\\n";
+            Files.write(tempFile, content.getBytes());
+            
+            // Read from file
+            List<String> lines = Files.readAllLines(tempFile);
+            System.out.println("File content:");
+            lines.forEach(System.out::println);
+            
+            // Get file info
+            System.out.println("File size: " + Files.size(tempFile) + " bytes");
+            System.out.println("Is readable: " + Files.isReadable(tempFile));
+            
+            // Clean up
+            Files.delete(tempFile);
+            System.out.println("Temp file deleted");
+            
+        } catch (IOException e) {
+            System.out.println("File operation error: " + e.getMessage());
+        }
+        
+        System.out.println("\\n=== End of Advanced Java Features ===");
+    }
+    
+    // Helper method for lambda demo
+    public static int operate(int a, int b, MathOperation operation) {
+        return operation.operate(a, b);
+    }
+}
+
+// Functional interface for lambda demo
+@FunctionalInterface
+interface MathOperation {
+    int operate(int a, int b);
+}
+
+// Person class for collectors demo
+class Person {
+    private String name;
+    private int age;
+    private String department;
+    
+    public Person(String name, int age, String department) {
+        this.name = name;
+        this.age = age;
+        this.department = department;
+    }
+    
+    public String getName() {
+        return name;
+    }
+    
+    public int getAge() {
+        return age;
+    }
+    
+    public String getDepartment() {
+        return department;
+    }
+    
+    @Override
+    public String toString() {
+        return name + " (" + age + ", " + department + ")";
+    }
+}
+
+// Interface with default and static methods
+interface Vehicle {
+    void start();
+    String getInfo();
+    
+    // Default method (Java 8+)
+    default void honk() {
+        System.out.println("Beep beep!");
+    }
+    
+    // Static method (Java 8+)
+    static String getType() {
+        return "Generic Vehicle";
+    }
+}
+
+class Car implements Vehicle {
+    private String make;
+    private String model;
+    
+    public Car(String make, String model) {
+        this.make = make;
+        this.model = model;
+    }
+    
+    @Override
+    public void start() {
+        System.out.println("Car engine starting...");
+    }
+    
+    @Override
+    public String getInfo() {
+        return make + " " + model + " (Car)";
+    }
+    
+    @Override
+    public void honk() {
+        System.out.println("Car horn: HONK HONK!");
+    }
+}
+
+class ElectricCar extends Car {
+    private int batteryCapacity;
+    
+    public ElectricCar(String make, String model, int batteryCapacity) {
+        super(make, model);
+        this.batteryCapacity = batteryCapacity;
+    }
+    
+    @Override
+    public void start() {
+        System.out.println("Electric motor starting silently...");
+    }
+    
+    @Override
+    public String getInfo() {
+        return super.getInfo() + " [Electric, " + batteryCapacity + " kWh]";
+    }
+}` 
+            }
+        ];
+
+        // Load examples into grid
+        const examplesGrid = document.getElementById('examplesGrid');
+        examples.forEach(example => {
+            const exampleCard = document.createElement('div');
+            exampleCard.className = 'example-card';
+            exampleCard.dataset.id = example.id;
+            
+            exampleCard.innerHTML = `
+                <div class="example-icon">
+                    <i class="${example.icon}"></i>
+                </div>
+                <h4>${example.title}</h4>
+                <p>${example.description}</p>
+                <div class="example-tags">
+                    ${example.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    <span class="tag ${example.level}">${example.level}</span>
+                </div>
+            `;
+            
+            exampleCard.addEventListener('click', () => {
+                // Remove active class from all cards
+                document.querySelectorAll('.example-card').forEach(card => {
+                    card.classList.remove('active');
+                });
+                
+                // Add active class to clicked card
+                exampleCard.classList.add('active');
+                
+                // Load example code into editor
+                editor.setValue(example.code);
+                
+                // Show success message
+                updateStatus('success', `Loaded "${example.title}" example`);
+                addOutput('info', `Example loaded: ${example.title} (${example.level} level)`);
+                
+                // Scroll to editor
+                document.querySelector('.editor-section').scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            examplesGrid.appendChild(exampleCard);
+        });
+
+        // Compile Java Code
+        document.getElementById('compileBtn').addEventListener('click', async () => {
+            const code = editor.getValue();
+            const status = document.getElementById('executionStatus');
+            const consoleOutput = document.getElementById('consoleOutput');
+            const debugOutput = document.getElementById('debugOutput');
+            const errorsTab = document.getElementById('errorsTab');
+            
+            // Clear previous outputs
+            consoleOutput.innerHTML = '';
+            debugOutput.innerHTML = '';
+            errorsTab.innerHTML = '';
+            
+            // Update status
+            updateStatus('compiling', 'Compiling Java code...');
+            
+            // Add compilation animation
+            const progressBar = document.createElement('div');
+            progressBar.className = 'compilation-animation';
+            progressBar.innerHTML = '<div class="compilation-progress"></div>';
+            consoleOutput.appendChild(progressBar);
+            
+            // Add compilation message
+            addOutput('info', 'Compiling Java code...', consoleOutput);
+            
+            try {
+                // Simulate compilation delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Remove progress bar
+                consoleOutput.removeChild(progressBar);
+                
+                // Check for common compilation errors
+                const compilationErrors = [];
+                
+                if (!code.includes('public class')) {
+                    compilationErrors.push('Missing public class declaration');
+                }
+                
+                if (!code.includes('main')) {
+                    compilationErrors.push('Missing main method');
+                }
+                
+                if (!code.includes('System.out.println')) {
+                    addOutput('warning', 'No output statements found', consoleOutput);
+                }
+                
+                if (compilationErrors.length > 0) {
+                    updateStatus('error', 'Compilation failed');
+                    
+                    compilationErrors.forEach(error => {
+                        addOutput('error', error, consoleOutput);
+                        addOutput('error', error, errorsTab);
+                    });
+                    
+                    addOutput('info', 'Fix the errors and try again', consoleOutput);
+                } else {
+                    updateStatus('success', 'Compilation successful');
+                    addOutput('success', '✓ Java code compiled successfully!', consoleOutput);
+                    addOutput('info', 'Click "Run Program" to execute the compiled code', consoleOutput);
+                    
+                    // Show compilation details in debug tab
+                    debugOutput.innerHTML = `
+                        <div class="output-line info">
+                            <i class="fas fa-info-circle"></i> Compilation Details
+                        </div>
+                        <div class="output-line output">
+                            <strong>Status:</strong> Successful
+                        </div>
+                        <div class="output-line output">
+                            <strong>Java Version:</strong> Java 17 (Simulated)
+                        </div>
+                        <div class="output-line output">
+                            <strong>Memory Usage:</strong> ~45MB (Simulated)
+                        </div>
+                        <div class="output-line output">
+                            <strong>Compilation Time:</strong> 1.5s (Simulated)
+                        </div>
+                        <div class="output-line info">
+                            <i class="fas fa-lightbulb"></i> The code is ready for execution
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                updateStatus('error', 'Compilation error');
+                addOutput('error', `Compilation error: ${error.message}`, consoleOutput);
+                addOutput('error', error.message, errorsTab);
+            }
+        });
+
+        // Run Java Program
+        document.getElementById('runBtn').addEventListener('click', async () => {
+            const status = document.getElementById('executionStatus');
+            const consoleOutput = document.getElementById('consoleOutput');
+            
+            // Check if compilation was successful
+            if (!status.classList.contains('status-success') && 
+                !status.textContent.includes('success')) {
+                addOutput('error', 'Please compile the code first!', consoleOutput);
+                updateStatus('error', 'Compile first');
+                return;
+            }
+            
+            updateStatus('running', 'Running Java program...');
+            
+            // Clear previous run output
+            const previousOutputs = consoleOutput.querySelectorAll('.output-line.output, .output-line.success');
+            previousOutputs.forEach(output => output.remove());
+            
+            addOutput('info', 'Starting Java program execution...', consoleOutput);
+            
+            try {
+                // Simulate program execution
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                // Simulate program output based on code content
+                const code = editor.getValue();
+                
+                // Extract class name for display
+                const classNameMatch = code.match(/public class (\w+)/);
+                const className = classNameMatch ? classNameMatch[1] : 'Main';
+                
+                addOutput('output', `=== ${className}.class Execution Output ===`, consoleOutput);
+                addOutput('output', '', consoleOutput);
+                
+                // Simulate different outputs based on example type
+                if (code.includes('Java Basics')) {
+                    simulateBasicJavaOutput(consoleOutput);
+                } else if (code.includes('OOP Concepts')) {
+                    simulateOOPOutput(consoleOutput);
+                } else if (code.includes('Collections Framework')) {
+                    simulateCollectionsOutput(consoleOutput);
+                } else if (code.includes('Exception Handling')) {
+                    simulateExceptionOutput(consoleOutput);
+                } else if (code.includes('Multithreading')) {
+                    simulateThreadingOutput(consoleOutput);
+                } else if (code.includes('Advanced Java')) {
+                    simulateAdvancedJavaOutput(consoleOutput);
+                } else {
+                    simulateDefaultOutput(consoleOutput);
+                }
+                
+                updateStatus('success', 'Execution completed');
+                addOutput('success', '✓ Program executed successfully!', consoleOutput);
+                
+            } catch (error) {
+                updateStatus('error', 'Runtime error');
+                addOutput('error', `Runtime error: ${error.message}`, consoleOutput);
+                addOutput('error', error.message, document.getElementById('errorsTab'));
+            }
+        });
+
+        // Clear Output
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            const consoleOutput = document.getElementById('consoleOutput');
+            const debugOutput = document.getElementById('debugOutput');
+            const errorsTab = document.getElementById('errorsTab');
+            
+            consoleOutput.innerHTML = `
+                <div class="output-line info">
+                    <i class="fas fa-info-circle"></i> Output cleared
+                </div>
+                <div class="output-line info">
+                    <i class="fas fa-info-circle"></i> Ready for compilation
+                </div>
+            `;
+            
+            debugOutput.innerHTML = '';
+            errorsTab.innerHTML = '';
+            
+            updateStatus('idle', 'Ready to compile');
+        });
+
+        // Save Code
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            const code = editor.getValue();
+            
+            // Extract class name from code
+            const classNameMatch = code.match(/public class (\w+)/);
+            const className = classNameMatch ? classNameMatch[1] : 'JavaProgram';
+            
+            const blob = new Blob([code], { type: 'text/x-java' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${className}.java`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            addOutput('success', `Code saved as ${className}.java`);
+        });
+
+        // Format Code
+        document.getElementById('formatBtn').addEventListener('click', () => {
+            const code = editor.getValue();
+            // Simple formatting - fix indentation
+            const lines = code.split('\n');
+            let indent = 0;
+            const formatted = lines.map(line => {
+                const trimmed = line.trim();
+                if (trimmed.endsWith('{') || trimmed.startsWith('class ') || trimmed.startsWith('public ') || trimmed.startsWith('private ') || 
+                    trimmed.startsWith('protected ') || trimmed.startsWith('if ') || trimmed.startsWith('for ') || 
+                    trimmed.startsWith('while ') || trimmed.startsWith('try ') || trimmed.startsWith('catch ') || 
+                    trimmed.startsWith('switch ')) {
+                    const result = '    '.repeat(indent) + trimmed;
+                    if (trimmed.endsWith('{')) indent++;
+                    return result;
+                } else if (trimmed === '}') {
+                    indent = Math.max(0, indent - 1);
+                    return '    '.repeat(indent) + trimmed;
+                } else {
+                    return '    '.repeat(indent) + trimmed;
+                }
+            }).join('\n');
+            
+            editor.setValue(formatted);
+            addOutput('info', 'Code formatted');
+        });
+
+        // Beautify Code
+        document.getElementById('beautifyBtn').addEventListener('click', () => {
+            let code = editor.getValue();
+            // Add spaces around operators
+            code = code.replace(/(\w)([=+*/%<>!&|]+)(\w)/g, '$1 $2 $3');
+            // Add spaces after commas
+            code = code.replace(/,(\w)/g, ', $1');
+            // Add spaces after semicolons in for loops
+            code = code.replace(/for\(([^)]+)\)/g, (match, p1) => {
+                return 'for(' + p1.replace(/;/g, '; ') + ')';
+            });
+            editor.setValue(code);
+            addOutput('info', 'Code beautified (operator spacing)');
+        });
+
+        // Organize Imports
+        document.getElementById('importsBtn').addEventListener('click', () => {
+            let code = editor.getValue();
+            const lines = code.split('\n');
+            const imports = new Set();
+            const otherLines = [];
+            
+            // Extract imports
+            lines.forEach(line => {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('import ')) {
+                    imports.add(trimmed);
+                } else if (trimmed) {
+                    otherLines.push(line);
+                }
+            });
+            
+            // Sort imports alphabetically
+            const sortedImports = Array.from(imports).sort();
+            
+            // Reconstruct code with organized imports
+            const organizedCode = sortedImports.join('\n') + '\n\n' + otherLines.join('\n');
+            editor.setValue(organizedCode);
+            
+            addOutput('info', `Organized ${sortedImports.length} import statements`);
+        });
+
+        // Font size controls
+        let fontSize = 14;
+        document.getElementById('fontIncrease').addEventListener('click', () => {
+            fontSize = Math.min(fontSize + 1, 24);
+            editor.getWrapperElement().style.fontSize = `${fontSize}px`;
+            editor.refresh();
+            addOutput('info', `Font size: ${fontSize}px`);
+        });
+        
+        document.getElementById('fontDecrease').addEventListener('click', () => {
+            fontSize = Math.max(fontSize - 1, 10);
+            editor.getWrapperElement().style.fontSize = `${fontSize}px`;
+            editor.refresh();
+            addOutput('info', `Font size: ${fontSize}px`);
+        });
+
+        // Helper functions
+        function updateStatus(type, message) {
+            const status = document.getElementById('statusIndicator');
+            const execStatus = document.getElementById('executionStatus');
+            
+            status.className = `status-indicator status-${type}`;
+            status.innerHTML = type === 'compiling' || type === 'running' 
+                ? '<div class="loader"></div> ' + message
+                : `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'circle'}"></i> ${message}`;
+            
+            execStatus.className = `status-indicator status-${type}`;
+            execStatus.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'compiling' || type === 'running' ? 'sync fa-spin' : 'circle'}"></i> ${message}`;
+        }
+
+        function addOutput(type, message, container = null) {
+            if (!container) {
+                container = document.getElementById('consoleOutput');
+            }
+            
+            const line = document.createElement('div');
+            line.className = `output-line ${type}`;
+            
+            const iconMap = {
+                'info': 'fas fa-info-circle',
+                'success': 'fas fa-check-circle',
+                'error': 'fas fa-exclamation-circle',
+                'warning': 'fas fa-exclamation-triangle',
+                'output': 'fas fa-angle-right'
+            };
+            
+            line.innerHTML = `<i class="${iconMap[type] || 'fas fa-angle-right'}"></i> ${message}`;
+            container.appendChild(line);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Simulation functions for different example types
+        function simulateBasicJavaOutput(container) {
+            const outputs = [
+                "=== Java Basics Examples ===",
+                "",
+                "1. Variables and Data Types:",
+                "-----------------------------",
+                "byte: 127",
+                "short: 32767",
+                "int: 2147483647",
+                "long: 9223372036854775807",
+                "float: 3.14159",
+                "double: 3.141592653589793",
+                "char: A",
+                "boolean: true",
+                "String: Hello, Java!",
+                "",
+                "2. Operators:",
+                "--------------",
+                "10 + 3 = 13",
+                "10 - 3 = 7",
+                "10 * 3 = 30",
+                "10 / 3 = 3",
+                "10 % 3 = 1",
+                "10 > 3 ? true",
+                "10 == 3 ? false",
+                "true && false = false",
+                "true || false = true",
+                "!true = false",
+                "",
+                "3. Control Structures:",
+                "------------------------",
+                "Temperature: 25°C - Warm",
+                "",
+                "Day 3 is: Wednesday",
+                "",
+                "4. Loops:",
+                "-----------",
+                "For loop (1-5): 1 2 3 4 5",
+                "While loop (5-1): 5 4 3 2 1",
+                "Do-while loop (1-3): 1 2 3",
+                "",
+                "5. Arrays:",
+                "-----------",
+                "Array elements: 1 2 3 4 5",
+                "",
+                "2D Array (Matrix):",
+                "1 2 3",
+                "4 5 6",
+                "7 8 9",
+                "",
+                "6. Methods:",
+                "------------",
+                "Factorial of 5: 120",
+                "Is 7 prime? true",
+                "Is 10 prime? false",
+                "",
+                "7. String Methods:",
+                "-------------------",
+                "Original: Java Programming",
+                "Length: 16",
+                "Uppercase: JAVA PROGRAMMING",
+                "Lowercase: java programming",
+                "Substring (0-4): Java",
+                "Contains 'Pro'? true",
+                "Replaced: Advanced Java Programming",
+                "",
+                "=== End of Java Basics ==="
+            ];
+            
+            outputs.forEach(line => {
+                if (line.trim() === '') {
+                    addOutput('output', '', container);
+                } else {
+                    addOutput('output', line, container);
+                }
+            });
+        }
+
+        function simulateOOPOutput(container) {
+            const outputs = [
+                "=== Object-Oriented Programming Examples ===",
+                "",
+                "1. Class and Object:",
+                "---------------------",
+                "Book: The Great Gatsby by F. Scott Fitzgerald (1925) - $9.99",
+                "Book: 1984 by George Orwell (1949) - $8.99",
+                "",
+                "2. Inheritance:",
+                "----------------",
+                "Book: Digital Java by Tech Author (2023) - $14.99 [E-Book]",
+                "File Format: PDF",
+                "File Size: 2.5 MB",
+                "",
+                "3. Polymorphism:",
+                "-----------------",
+                "Add two integers: 8",
+                "Add three integers: 10",
+                "Add two doubles: 8.7",
+                "Add three doubles: 10.5",
+                "",
+                "Animal Sounds:",
+                "Generic Animal makes a generic sound",
+                "Buddy (Golden Retriever) says: Woof Woof!",
+                "Whiskers (Gray cat) says: Meow!",
+                "",
+                "4. Abstraction:",
+                "----------------",
+                "Circle Area: 78.53981633974483",
+                "Circle Perimeter: 31.41592653589793",
+                "Rectangle Area: 24.0",
+                "Rectangle Perimeter: 20.0",
+                "",
+                "5. Encapsulation:",
+                "------------------",
+                "Account Info: Account: ACC12345, Holder: John Doe, Balance: $1000.00",
+                "Deposited: $500.0",
+                "After deposit: Account: ACC12345, Holder: John Doe, Balance: $1500.00",
+                "Withdrawn: $200.0",
+                "After withdrawal: Account: ACC12345, Holder: John Doe, Balance: $1300.00",
+                "Withdrawal failed: Insufficient funds",
+                "",
+                "6. Interfaces:",
+                "---------------",
+                "Car Info: Toyota Camry (2022)",
+                "Car engine starting... Vroom!",
+                "Car engine stopping...",
+                "",
+                "Motorcycle Info: Harley Sportster (2021)",
+                "Motorcycle engine starting... Brrrrm!",
+                "Motorcycle engine stopping...",
+                "",
+                "7. Static and Final:",
+                "----------------------",
+                "MathUtils.PI = 3.141592653589793",
+                "Max of 10 and 20: 20",
+                "Min of 10 and 20: 10",
+                "Power 2^3: 8.0",
+                "",
+                "8. Collections with Objects:",
+                "-----------------------------",
+                "Library Collection:",
+                "  - The Great Gatsby",
+                "  - 1984",
+                "  - Digital Java",
+                "",
+                "=== End of OOP Examples ==="
+            ];
+            
+            outputs.forEach(line => {
+                if (line.trim() === '') {
+                    addOutput('output', '', container);
+                } else {
+                    addOutput('output', line, container);
+                }
+            });
+        }
+
+        function simulateCollectionsOutput(container) {
+            const outputs = [
+                "=== Java Collections Framework ===",
+                "",
+                "1. ArrayList (Dynamic Array):",
+                "-------------------------------",
+                "Fruits: [Apple, Banana, Orange, Mango, Grapes]",
+                "Size: 5",
+                "Contains 'Apple'? true",
+                "Element at index 2: Orange",
+                "After removing 'Banana': [Apple, Orange, Mango, Grapes]",
+                "Iterating: Apple Orange Mango Grapes",
+                "",
+                "2. LinkedList:",
+                "----------------",
+                "Numbers: [5, 10, 20, 30, 40]",
+                "First: 5",
+                "Last: 40",
+                "After removing first and last: [10, 20, 30]",
+                "",
+                "3. HashSet (No duplicates):",
+                "-----------------------------",
+                "Unique Names: [Charlie, Bob, Alice, David]",
+                "Size: 4",
+                "Contains 'Bob'? true",
+                "",
+                "4. TreeSet (Sorted):",
+                "----------------------",
+                "Sorted Numbers: [10, 20, 30, 50, 80]",
+                "First: 10",
+                "Last: 80",
+                "Numbers greater than 25: [30, 50, 80]",
+                "",
+                "5. HashMap (Key-Value pairs):",
+                "--------------------------------",
+                "Student Grades: {Charlie=92, Bob=88, Alice=95, David=85}",
+                "Alice's grade: 95",
+                "Contains key 'Bob'? true",
+                "Contains value 100? false",
+                "",
+                "Iterating HashMap:",
+                "  Charlie: 92",
+                "  Bob: 88",
+                "  Alice: 95",
+                "  David: 85",
+                "",
+                "6. TreeMap (Sorted by keys):",
+                "-------------------------------",
+                "Product Prices (Sorted): {Keyboard=89.99, Laptop=999.99, Monitor=299.99, Mouse=29.99}",
+                "First product: Keyboard = $89.99",
+                "",
+                "7. Stack (LIFO - Last In First Out):",
+                "--------------------------------------",
+                "Stack: [First, Second, Third, Fourth]",
+                "Top element: Fourth",
+                "Popped: Fourth",
+                "Stack after pop: [First, Second, Third]",
+                "",
+                "8. Queue (FIFO - First In First Out):",
+                "--------------------------------------",
+                "Queue: [First, Second, Third, Fourth]",
+                "Front element: First",
+                "Polled: First",
+                "Queue after poll: [Second, Third, Fourth]",
+                "",
+                "9. PriorityQueue (Min-Heap by default):",
+                "----------------------------------------",
+                "PriorityQueue (Min-Heap): 10 20 30 40 50",
+                "PriorityQueue (Max-Heap): 50 40 30 20 10",
+                "",
+                "10. Collections Utility Methods:",
+                "----------------------------------",
+                "Original: [5, 2, 8, 1, 9, 3, 7, 4, 6]",
+                "Sorted: [1, 2, 3, 4, 5, 6, 7, 8, 9]",
+                "Reversed: [9, 8, 7, 6, 5, 4, 3, 2, 1]",
+                "Shuffled: [3, 7, 1, 9, 5, 8, 2, 6, 4]",
+                "Max: 9",
+                "Min: 1",
+                "",
+                "11. Stream API with Collections:",
+                "----------------------------------",
+                "Cities: [New York, London, Tokyo, Paris, Berlin, Sydney, Beijing, Mumbai]",
+                "Cities starting with 'L': [London]",
+                "Cities in uppercase: [NEW YORK, LONDON, TOKYO, PARIS, BERLIN, SYDNEY, BEIJING, MUMBAI]",
+                "Sorted cities: [Beijing, Berlin, London, Mumbai, New York, Paris, Sydney, Tokyo]",
+                "First 3 cities: [New York, London, Tokyo]",
+                "Cities with >5 characters: 7",
+                "First city with 'o': London",
+                "Any city starts with 'B'? true",
+                "",
+                "12. Generic Class Example:",
+                "----------------------------",
+                "Integer Box: 42",
+                "String Box: Hello Generics!",
+                "Double Box: 3.14159",
+                "",
+                "13. Iterator Pattern:",
+                "-----------------------",
+                "Colors using Iterator: Red Green Blue Yellow Purple",
+                "",
+                "14. Collections Performance:",
+                "------------------------------",
+                "• ArrayList: Fast random access, slower insertions in middle",
+                "• LinkedList: Fast insertions/deletions, slower random access",
+                "• HashSet: Fast lookups, no order",
+                "• TreeSet: Sorted, slower than HashSet",
+                "• HashMap: Fast key-value lookups",
+                "• TreeMap: Sorted by keys, slower than HashMap",
+                "",
+                "=== End of Collections Demo ==="
+            ];
+            
+            outputs.forEach(line => {
+                if (line.trim() === '') {
+                    addOutput('output', '', container);
+                } else {
+                    addOutput('output', line, container);
+                }
+            });
+        }
+
+        function simulateExceptionOutput(container) {
+            const outputs = [
+                "=== Java Exception Handling ===",
+                "",
+                "1. Basic Try-Catch:",
+                "--------------------",
+                "Error: Cannot divide by zero!",
+                "Exception message: / by zero",
+                "Exception type: java.lang.ArithmeticException",
+                "",
+                "2. Multiple Catch Blocks:",
+                "--------------------------",
+                "NullPointerException: Object is null",
+                "",
+                "3. Finally Block:",
+                "------------------",
+                "File not found: nonexistent.txt (No such file or directory)",
+                "Finally block executed",
+                "",
+                "4. Try-With-Resources:",
+                "-----------------------",
+                "Reading lines:",
+                "  Hello",
+                "  World",
+                "  Java",
+                "",
+                "5. Custom Exceptions:",
+                "----------------------",
+                "Age 25 is valid",
+                "Custom Exception: Age must be 18 or older",
+                "Invalid age: 15",
+                "",
+                "6. Throwing Exceptions:",
+                "------------------------",
+                "IllegalArgumentException: Input cannot be empty",
+                "",
+                "7. Checked vs Unchecked Exceptions:",
+                "-----------------------------------",
+                "Unchecked Exception: ArrayIndexOutOfBoundsException",
+                "Checked Exception: IOException",
+                "",
+                "8. Exception Propagation:",
+                "--------------------------",
+                "Exception caught in main: Exception from methodC",
+                "Stack Trace:",
+                "java.lang.RuntimeException: Exception from methodC",
+                "   at AdvancedJava.methodC(AdvancedJava.java:XXX)",
+                "   at AdvancedJava.methodB(AdvancedJava.java:XXX)",
+                "   at AdvancedJava.methodA(AdvancedJava.java:XXX)",
+                "   at AdvancedJava.main(AdvancedJava.java:XXX)",
+                "",
+                "9. Nested Try-Catch:",
+                "---------------------",
+                "Outer try block",
+                "Inner catch: Array index out of bounds",
+                "Outer catch: Rethrowing exception",
+                "Caused by: 5",
+                "",
+                "10. Best Practices Example:",
+                "----------------------------",
+                "Deposit failed: Deposit amount must be positive: $-500.0",
+                "Withdrawal failed: Insufficient funds for withdrawal",
+                "Current balance: $1000.0",
+                "Attempted withdrawal: $2000.0",
+                "",
+                "Final balance: $1000.0",
+                "",
+                "11. Optional for Null Safety:",
+                "------------------------------",
+                "Value is absent (null)",
+                "Value found: Actual Value",
+                "Result with default: Default Value",
+                "",
+                "=== End of Exception Handling ==="
+            ];
+            
+            outputs.forEach(line => {
+                if (line.trim() === '') {
+                    addOutput('output', '', container);
+                } else {
+                    addOutput('output', line, container);
+                }
+            });
+        }
+
+        function simulateThreadingOutput(container) {
+            const outputs = [
+                "=== Java Multithreading and Concurrency ===",
+                "",
+                "1. Creating Threads (Extending Thread):",
+                "----------------------------------------",
+                "Thread-1 - Count: 1",
+                "Thread-2 - Count: 1",
+                "Thread-1 - Count: 2",
+                "Thread-2 - Count: 2",
+                "Thread-1 - Count: 3",
+                "Thread-2 - Count: 3",
+                "",
+                "2. Creating Threads (Implementing Runnable):",
+                "---------------------------------------------",
+                "Runnable-1 - Runnable Count: 1",
+                "Runnable-2 - Runnable Count: 1",
+                "Runnable-1 - Runnable Count: 2",
+                "Runnable-2 - Runnable Count: 2",
+                "Runnable-1 - Runnable Count: 3",
+                "Runnable-2 - Runnable Count: 3",
+                "",
+                "3. Thread Sleep and Interruption:",
+                "-----------------------------------",
+                "Sleeper is going to sleep",
+                "Sleeper was interrupted!",
+                "",
+                "4. Thread Priority:",
+                "--------------------",
+                "High-Priority finished counting",
+                "Low-Priority finished counting",
+                "",
+                "5. Synchronization (synchronized keyword):",
+                "--------------------------------------------",
+                "Sync-Thread-0 finished incrementing",
+                "Sync-Thread-1 finished incrementing",
+                "Sync-Thread-2 finished incrementing",
+                "Sync-Thread-3 finished incrementing",
+                "Sync-Thread-4 finished incrementing",
+                "Final synchronized count: 5000",
+                "",
+                "6. Atomic Variables:",
+                "---------------------",
+                "Atomic-Thread-0 finished atomic increment",
+                "Atomic-Thread-1 finished atomic increment",
+                "Atomic-Thread-2 finished atomic increment",
+                "Atomic-Thread-3 finished atomic increment",
+                "Atomic-Thread-4 finished atomic increment",
+                "Final atomic count: 5000",
+                "",
+                "7. ReentrantLock:",
+                "------------------",
+                "Lock-Thread-0 acquired lock",
+                "Lock-Thread-0 performing critical task",
+                "Lock-Thread-0 releasing lock",
+                "Lock-Thread-1 acquired lock",
+                "Lock-Thread-1 performing critical task",
+                "Lock-Thread-1 releasing lock",
+                "Lock-Thread-2 acquired lock",
+                "Lock-Thread-2 performing critical task",
+                "Lock-Thread-2 releasing lock",
+                "",
+                "8. ExecutorService (Thread Pool):",
+                "-----------------------------------",
+                "pool-1-thread-1 executing task 0",
+                "pool-1-thread-2 executing task 1",
+                "pool-1-thread-3 executing task 2",
+                "pool-1-thread-1 executing task 3",
+                "pool-1-thread-2 executing task 4",
+                "pool-1-thread-3 executing task 5",
+                "pool-1-thread-1 executing task 6",
+                "pool-1-thread-2 executing task 7",
+                "pool-1-thread-3 executing task 8",
+                "pool-1-thread-1 executing task 9",
+                "",
+                "Task Results:",
+                "Result: 0",
+                "Result: 10",
+                "Result: 20",
+                "Result: 30",
+                "Result: 40",
+                "Result: 50",
+                "Result: 60",
+                "Result: 70",
+                "Result: 80",
+                "Result: 90",
+                "",
+                "9. Callable and Future:",
+                "-------------------------",
+                "Calculating factorial of 5...",
+                "Factorial of 5 = 120",
+                "",
+                "10. CompletableFuture (Java 8+):",
+                "----------------------------------",
+                "Async task 1 running in ForkJoinPool.commonPool-worker-1",
+                "Async task 2 running in ForkJoinPool.commonPool-worker-2",
+                "Combined: Hello from CompletableFuture",
+                "",
+                "11. Producer-Consumer Pattern:",
+                "-------------------------------",
+                "Producing: 1",
+                "Consuming: 1",
+                "Producing: 2",
+                "Producing: 3",
+                "Consuming: 2",
+                "Producing: 4",
+                "Producing: 5",
+                "Consuming: 3",
+                "Producing: 6",
+                "Producing: 7",
+                "Consuming: 4",
+                "Producing: 8",
+                "Producing: 9",
+                "Consuming: 5",
+                "Producing: 10",
+                "Producer finished",
+                "Consuming: 6",
+                "Consuming: 7",
+                "Consuming: 8",
+                "Consuming: 9",
+                "Consuming: 10",
+                "Consumer finished",
+                "",
+                "12. Deadlock Prevention:",
+                "--------------------------",
+                "Thread-1 transferred $100.0 from Account 1 to Account 2",
+                "Thread-2 transferred $50.0 from Account 2 to Account 1",
+                "Account 1 balance: $950.0",
+                "Account 2 balance: $1050.0",
+                "",
+                "=== End of Multithreading Demo ==="
+            ];
+            
+            outputs.forEach(line => {
+                if (line.trim() === '') {
+                    addOutput('output', '', container);
+                } else {
+                    addOutput('output', line, container);
+                }
+            });
+        }
+
+        function simulateAdvancedJavaOutput(container) {
+            const outputs = [
+                "=== Advanced Java Features (Java 8+) ===",
+                "",
+                "1. Lambda Expressions:",
+                "----------------------",
+                "Traditional anonymous class",
+                "Lambda expression",
+                "10 + 5 = 15",
+                "10 * 5 = 50",
+                "",
+                "2. Functional Interfaces:",
+                "--------------------------",
+                "Is 10 even? true",
+                "Length of 'Java': 4",
+                "HELLO FUNCTIONAL INTERFACES",
+                "Random number: 0.742913476...",
+                "",
+                "3. Stream API:",
+                "---------------",
+                "Original list: [New York, London, Tokyo, Paris, Berlin, Sydney, Beijing, Mumbai]",
+                "Cities starting with 'L': [London]",
+                "Cities in uppercase: [NEW YORK, LONDON, TOKYO, PARIS, BERLIN, SYDNEY, BEIJING, MUMBAI]",
+                "Sorted cities: [Beijing, Berlin, London, Mumbai, New York, Paris, Sydney, Tokyo]",
+                "First 3 cities: [New York, London, Tokyo]",
+                "Cities with >6 characters: 7",
+                "First city with 'o': London",
+                "Any city starts with 'B'? true",
+                "",
+                "4. Stream Operations on Numbers:",
+                "----------------------------------",
+                "Sum: 55",
+                "Average: 5.5",
+                "Max: 10",
+                "Product: 3628800",
+                "",
+                "5. Parallel Streams:",
+                "---------------------",
+                "Sequential sum: 499999500000 (Time: 45ms)",
+                "Parallel sum: 499999500000 (Time: 22ms)",
+                "",
+                "6. Optional Class:",
+                "-------------------",
+                "Traditional: Hello",
+                "IfPresent: Hello",
+                "OrElse: Default Value",
+                "OrElseGet: Generated 1634567890123",
+                "HELLO!!!",
+                "",
+                "7. Date and Time API:",
+                "----------------------",
+                "Today: 2023-10-01",
+                "Now: 14:30:45.123",
+                "Current Date-Time: 2023-10-01T14:30:45.123",
+                "Birth Date: 1990-01-15",
+                "Meeting Time: 14:30",
+                "Next week: 2023-10-08",
+                "Last month: 2023-09-01",
+                "Duration since meeting time: 45 minutes",
+                "Age: 33 years, 8 months, 16 days",
+                "Formatted: 01/10/2023 14:30:45",
+                "",
+                "8. Method References:",
+                "----------------------",
+                "Alice",
+                "Bob",
+                "Charlie",
+                "Diana",
+                "Sorted names: [Alice, Bob, Charlie, Diana]",
+                "New list: [Constructor reference example]",
+                "",
+                "9. Default and Static Methods in Interfaces:",
+                "------------------------------------------------",
+                "Toyota Camry (Car)",
+                "Car engine starting...",
+                "Car horn: HONK HONK!",
+                "",
+                "Tesla Model 3 (Car) [Electric, 75 kWh]",
+                "Electric motor starting silently...",
+                "Car horn: HONK HONK!",
+                "",
+                "Vehicle type: Generic Vehicle",
+                "",
+                "10. Advanced Collectors:",
+                "-------------------------",
+                "",
+                "People by department:",
+                "Engineering: Alice, Charlie, Frank",
+                "Sales: Bob, Eve",
+                "HR: Diana",
+                "",
+                "Average age by department:",
+                "Engineering: 33.3",
+                "Sales: 31.0",
+                "HR: 28.0",
+                "",
+                "Partitioned by age (>=30):",
+                "30 or older: Bob, Charlie, Eve, Frank",
+                "Younger than 30: Alice, Diana",
+                "",
+                "11. Files API (Java 7+):",
+                "-------------------------",
+                "Created temp file: /tmp/java_demo_123456.txt",
+                "File content:",
+                "Hello from Java Files API!",
+                "This is a test.",
+                "File size: 45 bytes",
+                "Is readable: true",
+                "Temp file deleted",
+                "",
+                "=== End of Advanced Java Features ==="
+            ];
+            
+            outputs.forEach(line => {
+                if (line.trim() === '') {
+                    addOutput('output', '', container);
+                } else {
+                    addOutput('output', line, container);
+                }
+            });
+        }
+
+        function simulateDefaultOutput(container) {
+            const outputs = [
+                "=== Java Online Code Editor ===",
+                "Write and execute Java code directly in your browser!",
+                "================================",
+                "",
+                "Basic Java Examples:",
+                "--------------------",
+                "Name: Java Developer",
+                "Age: 25 years",
+                "Salary: $75000.50",
+                "Active: Yes",
+                "Grade: A",
+                "",
+                "Languages: [Java, JavaScript, Python, C++]",
+                "",
+                "Function Examples:",
+                "Sum of 10 and 20: 30",
+                "Is 15 even? No",
+                "",
+                "Control Structures:",
+                "Score: 85 - Grade: B",
+                "",
+                "Numbers 1-10: 1 2 3 4 5 6 7 8 9 10",
+                "",
+                "Even numbers (while): 2 4 6 8 10",
+                "",
+                "Collection Examples:",
+                "Fruits: [Apple, Banana, Orange, Mango]",
+                "Student Grades: {Alice=95, Bob=88, Charlie=92}",
+                "",
+                "Object-Oriented Programming:",
+                "Hello, I'm John Doe, 30 years old.",
+                "Hello, I'm Jane Smith, 20 years old. I'm a Computer Science student (ID: S001).",
+                "",
+                "Exception Handling Example:",
+                "Error: Division by zero",
+                "Cannot divide by zero!",
+                "",
+                "Date and Time:",
+                "Current Date: 2023-10-01",
+                "Current Time: 14:30:45",
+                "Day of Week: SUNDAY",
+                "",
+                "=========================================",
+                "✓ Program executed successfully!",
+                "Try modifying the code or load an example.",
+                "========================================="
+            ];
+            
+            outputs.forEach(line => {
+                if (line.trim() === '') {
+                    addOutput('output', '', container);
+                } else {
+                    addOutput('output', line, container);
+                }
+            });
+        }
+
+        // Auto-save to localStorage
+        editor.on('change', () => {
+            localStorage.setItem('javaEditorCode', editor.getValue());
+        });
+
+        // Load saved code
+        const savedCode = localStorage.getItem('javaEditorCode');
+        if (savedCode) {
+            editor.setValue(savedCode);
+            addOutput('info', 'Previous code loaded from browser storage');
+        }
+
+        // Initialize with first example active
+        document.querySelector('.example-card').classList.add('active');
+        
+        // Add initial output about Java
+        addOutput('info', 'Java is a class-based, object-oriented programming language');
+        addOutput('info', 'Java applications are compiled to bytecode that runs on JVM');
+        addOutput('info', 'This editor supports Java 8+ features including Streams and Lambdas');
+    </script>
+</body>
+</html>
